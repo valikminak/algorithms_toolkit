@@ -1,4 +1,3 @@
-# string/palindrome.py
 from typing import List, Tuple
 
 

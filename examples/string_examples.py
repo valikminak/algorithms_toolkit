@@ -1,9 +1,9 @@
-from algorithms_toolkit.string.pattern_matching import kmp_search, rabin_karp_search, z_algorithm
-from algorithms_toolkit.string.palindrome import is_palindrome, longest_palindromic_substring, manacher_algorithm
-from algorithms_toolkit.string.sequence import longest_common_subsequence, edit_distance, longest_increasing_subsequence
-from algorithms_toolkit.string.aho_corasick import AhoCorasick
-from algorithms_toolkit.string.suffix import SuffixArray
-from algorithms_toolkit.string.compression import run_length_encode, run_length_decode, huffman_coding, huffman_decode
+from string.pattern_matching import kmp_search, rabin_karp_search, z_algorithm
+from string.palindrome import is_palindrome, longest_palindromic_substring, manacher_algorithm
+from string.sequence import longest_common_subsequence, edit_distance, longest_increasing_subsequence
+from string.aho_corasick import AhoCorasick
+from string.suffix import SuffixArray
+from string.compression import run_length_encode, run_length_decode, huffman_coding, huffman_decode
 
 
 def pattern_matching_example():

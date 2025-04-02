@@ -1,8 +1,8 @@
-from algorithms_toolkit.dp.classic import (
+from dp.classic import (
     fibonacci_dp, coin_change, knapsack_01, knapsack_01_with_solution,
     rod_cutting, rod_cutting_with_solution, matrix_chain_multiplication
 )
-from algorithms_toolkit.dp.sequence import (
+from dp.sequence import (
     longest_increasing_subsequence, longest_common_subsequence,
     longest_common_substring, longest_palindromic_subsequence
 )

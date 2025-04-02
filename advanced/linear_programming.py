@@ -277,232 +277,232 @@ class InteriorPointSolver:
 
         # advanced/linear_programming.py (continued)
 
-        def _compute_step(self, A: np.ndarray, c: np.ndarray, x: np.ndarray, y: np.ndarray, s: np.ndarray,
-                          gap: float) -> np.ndarray:
-            """
-            Compute the step for the interior point method.
-
-            Args:
-                A: Constraint matrix in standard form
-                c: Objective coefficients in standard form
-                x: Current primal variables
-                y: Current dual variables
-                s: Current slack variables
-                gap: Current duality gap
-
-            Returns:
-                Step direction for primal and dual variables
-            """
-            n, m = A.shape
-            n -= m  # Number of original variables
-
-            # Target gap
-            sigma = 0.1
-            mu = sigma * gap
-
-            # Extract slack variables
-            x_slack = x[n:]
-
-            # Compute the residuals
-            r_p = np.dot(A, x) - self.b
-            r_d = np.dot(A.T, y) + np.concatenate([np.zeros(n), s]) - c
-            r_c = x_slack * s - mu
-
-            # Form the augmented system
-            D = np.diag(s / x_slack)
-            M = np.dot(A[:, n:], np.dot(np.diag(1.0 / s), np.diag(x_slack)))
-
-            # Solve for dy
-            rhs = r_p - np.dot(A[:, n:], r_c / s)
-            dy = np.linalg.solve(M, rhs)
-
-            # Compute ds and dx
-            ds = np.dot(A[:, n:].T, dy) - r_d[n:]
-            dx_slack = (mu - x_slack * s - x_slack * ds) / s
-            dx = np.concatenate([np.zeros(n), dx_slack])
-
-            # For original variables, solve using dual residual
-            dx[:n] = np.linalg.solve(A[:, :n].T, -r_d[:n] - np.dot(A[:, n:].T, dy))
-
-            return np.concatenate([dx, dy, ds])
-
-        def _line_search(self, x: np.ndarray, s: np.ndarray, step: np.ndarray) -> Tuple[float, float]:
-            """
-            Perform a line search to ensure x and s remain positive.
-
-            Args:
-                x: Current primal variables
-                s: Current slack variables
-                step: Step direction
-
-            Returns:
-                Tuple of (primal_step_size, dual_step_size)
-            """
-            n = len(x) - len(s)
-            dx = step[:len(x)]
-            ds = step[-len(s):]
-
-            # Compute maximum step sizes
-            alpha_p = 1.0
-            for i in range(n, len(x)):
-                if dx[i] < 0:
-                    alpha_p = min(alpha_p, -0.99 * x[i] / dx[i])
-
-            alpha_d = 1.0
-            for i in range(len(s)):
-                if ds[i] < 0:
-                    alpha_d = min(alpha_d, -0.99 * s[i] / ds[i])
-
-            return alpha_p, alpha_d
-
-    def solve_lp(c: List[float], A: List[List[float]], b: List[float], method: str = 'simplex') -> Tuple[
-        Optional[List[float]], Optional[float]]:
+    def _compute_step(self, A: np.ndarray, c: np.ndarray, x: np.ndarray, y: np.ndarray, s: np.ndarray,
+                      gap: float) -> np.ndarray:
         """
-        Solve a linear programming problem.
+        Compute the step for the interior point method.
 
         Args:
-            c: Coefficients of the objective function (maximize c^T x)
-            A: Constraint coefficients matrix (Ax <= b)
-            b: Constraint right-hand side values
-            method: Solution method ('simplex' or 'interior-point')
+            A: Constraint matrix in standard form
+            c: Objective coefficients in standard form
+            x: Current primal variables
+            y: Current dual variables
+            s: Current slack variables
+            gap: Current duality gap
 
         Returns:
-            Tuple of (optimal_solution, optimal_value) if a solution exists,
-            or (None, None) if the problem is infeasible or unbounded
+            Step direction for primal and dual variables
         """
-        if method == 'simplex':
-            solver = SimplexSolver(c, A, b)
-        elif method == 'interior-point':
-            solver = InteriorPointSolver(c, A, b)
-        else:
-            raise ValueError(f"Unknown method: {method}")
+        n, m = A.shape
+        n -= m  # Number of original variables
 
-        return solver.solve()
+        # Target gap
+        sigma = 0.1
+        mu = sigma * gap
 
-    def convert_to_standard_form(c: List[float], A: List[List[float]], b: List[float],
-                                 eq_constraints: List[bool] = None,
-                                 geq_constraints: List[bool] = None) -> Tuple[
-        List[float], List[List[float]], List[float]]:
+        # Extract slack variables
+        x_slack = x[n:]
+
+        # Compute the residuals
+        r_p = np.dot(A, x) - self.b
+        r_d = np.dot(A.T, y) + np.concatenate([np.zeros(n), s]) - c
+        r_c = x_slack * s - mu
+
+        # Form the augmented system
+        D = np.diag(s / x_slack)
+        M = np.dot(A[:, n:], np.dot(np.diag(1.0 / s), np.diag(x_slack)))
+
+        # Solve for dy
+        rhs = r_p - np.dot(A[:, n:], r_c / s)
+        dy = np.linalg.solve(M, rhs)
+
+        # Compute ds and dx
+        ds = np.dot(A[:, n:].T, dy) - r_d[n:]
+        dx_slack = (mu - x_slack * s - x_slack * ds) / s
+        dx = np.concatenate([np.zeros(n), dx_slack])
+
+        # For original variables, solve using dual residual
+        dx[:n] = np.linalg.solve(A[:, :n].T, -r_d[:n] - np.dot(A[:, n:].T, dy))
+
+        return np.concatenate([dx, dy, ds])
+
+    def _line_search(self, x: np.ndarray, s: np.ndarray, step: np.ndarray) -> Tuple[float, float]:
         """
-        Convert a linear programming problem to standard form.
-
-        Standard form: Maximize c^T x subject to Ax <= b and x >= 0
+        Perform a line search to ensure x and s remain positive.
 
         Args:
-            c: Coefficients of the objective function
-            A: Constraint coefficients matrix
-            b: Constraint right-hand side values
-            eq_constraints: List indicating which constraints are equalities (=)
-            geq_constraints: List indicating which constraints are inequalities (>=)
+            x: Current primal variables
+            s: Current slack variables
+            step: Step direction
 
         Returns:
-            Tuple of (c_new, A_new, b_new) in standard form
+            Tuple of (primal_step_size, dual_step_size)
         """
-        c = np.array(c, dtype=float)
-        A = np.array(A, dtype=float)
-        b = np.array(b, dtype=float)
+        n = len(x) - len(s)
+        dx = step[:len(x)]
+        ds = step[-len(s):]
 
-        m, n = A.shape
+        # Compute maximum step sizes
+        alpha_p = 1.0
+        for i in range(n, len(x)):
+            if dx[i] < 0:
+                alpha_p = min(alpha_p, -0.99 * x[i] / dx[i])
 
-        # Initialize constraint type flags if not provided
-        if eq_constraints is None:
-            eq_constraints = [False] * m
-        if geq_constraints is None:
-            geq_constraints = [False] * m
+        alpha_d = 1.0
+        for i in range(len(s)):
+            if ds[i] < 0:
+                alpha_d = min(alpha_d, -0.99 * s[i] / ds[i])
 
-        # Convert equality constraints to two inequality constraints
-        eq_indices = [i for i, is_eq in enumerate(eq_constraints) if is_eq]
-        num_eq = len(eq_indices)
+        return alpha_p, alpha_d
 
-        if num_eq > 0:
-            # For each equality constraint Ax = b, add two inequality constraints:
-            # Ax <= b and -Ax <= -b
-            A_expanded = np.vstack([A] + [-A[eq_indices, :]])
-            b_expanded = np.hstack([b] + [-b[eq_indices]])
+def solve_lp(c: List[float], A: List[List[float]], b: List[float], method: str = 'simplex') -> Tuple[
+    Optional[List[float]], Optional[float]]:
+    """
+    Solve a linear programming problem.
 
-            # Update constraint type flags
-            eq_constraints = [False] * (m + num_eq)
-            geq_constraints = [geq for i, geq in enumerate(geq_constraints) if i not in eq_indices]
-            geq_constraints += [False] * num_eq
-        else:
-            A_expanded = A
-            b_expanded = b
+    Args:
+        c: Coefficients of the objective function (maximize c^T x)
+        A: Constraint coefficients matrix (Ax <= b)
+        b: Constraint right-hand side values
+        method: Solution method ('simplex' or 'interior-point')
 
-        # Convert >= constraints to <= constraints
-        geq_indices = [i for i, is_geq in enumerate(geq_constraints) if is_geq]
+    Returns:
+        Tuple of (optimal_solution, optimal_value) if a solution exists,
+        or (None, None) if the problem is infeasible or unbounded
+    """
+    if method == 'simplex':
+        solver = SimplexSolver(c, A, b)
+    elif method == 'interior-point':
+        solver = InteriorPointSolver(c, A, b)
+    else:
+        raise ValueError(f"Unknown method: {method}")
 
-        if geq_indices:
-            A_expanded[geq_indices, :] = -A_expanded[geq_indices, :]
-            b_expanded[geq_indices] = -b_expanded[geq_indices]
+    return solver.solve()
 
-        # Convert variables that can be negative to two non-negative variables
-        # For each x_i, replace with x_i^+ - x_i^- where x_i^+, x_i^- >= 0
-        c_new = np.hstack([c, -c])  # Coefficients for x^+ and x^-
-        A_new = np.hstack([A_expanded, -A_expanded])
+def convert_to_standard_form(c: List[float], A: List[List[float]], b: List[float],
+                             eq_constraints: List[bool] = None,
+                             geq_constraints: List[bool] = None) -> Tuple[
+    List[float], List[List[float]], List[float]]:
+    """
+    Convert a linear programming problem to standard form.
 
-        return c_new.tolist(), A_new.tolist(), b_expanded.tolist()
+    Standard form: Maximize c^T x subject to Ax <= b and x >= 0
 
-    def integer_linear_programming(c: List[float], A: List[List[float]], b: List[float],
-                                   method: str = 'branch-and-bound') -> Tuple[Optional[List[float]], Optional[float]]:
-        """
-        Solve an integer linear programming problem.
+    Args:
+        c: Coefficients of the objective function
+        A: Constraint coefficients matrix
+        b: Constraint right-hand side values
+        eq_constraints: List indicating which constraints are equalities (=)
+        geq_constraints: List indicating which constraints are inequalities (>=)
 
-        Args:
-            c: Coefficients of the objective function (maximize c^T x)
-            A: Constraint coefficients matrix (Ax <= b)
-            b: Constraint right-hand side values
-            method: Solution method ('branch-and-bound')
+    Returns:
+        Tuple of (c_new, A_new, b_new) in standard form
+    """
+    c = np.array(c, dtype=float)
+    A = np.array(A, dtype=float)
+    b = np.array(b, dtype=float)
 
-        Returns:
-            Tuple of (optimal_solution, optimal_value) if a solution exists,
-            or (None, None) if the problem is infeasible or unbounded
-        """
-        if method != 'branch-and-bound':
-            raise ValueError(f"Unknown method: {method}")
+    m, n = A.shape
 
-        # Solve the LP relaxation
-        lp_solution, lp_value = solve_lp(c, A, b)
+    # Initialize constraint type flags if not provided
+    if eq_constraints is None:
+        eq_constraints = [False] * m
+    if geq_constraints is None:
+        geq_constraints = [False] * m
 
-        if lp_solution is None:
-            return None, None  # Problem is infeasible or unbounded
+    # Convert equality constraints to two inequality constraints
+    eq_indices = [i for i, is_eq in enumerate(eq_constraints) if is_eq]
+    num_eq = len(eq_indices)
 
-        # Check if all variables are integers
-        if all(abs(x - round(x)) < 1e-6 for x in lp_solution):
-            return [round(x) for x in lp_solution], lp_value
+    if num_eq > 0:
+        # For each equality constraint Ax = b, add two inequality constraints:
+        # Ax <= b and -Ax <= -b
+        A_expanded = np.vstack([A] + [-A[eq_indices, :]])
+        b_expanded = np.hstack([b] + [-b[eq_indices]])
 
-        # Find a non-integer variable
-        for i, x in enumerate(lp_solution):
-            if abs(x - round(x)) >= 1e-6:
-                # Branch on this variable
-                floor_x = math.floor(x)
-                ceil_x = math.ceil(x)
+        # Update constraint type flags
+        eq_constraints = [False] * (m + num_eq)
+        geq_constraints = [geq for i, geq in enumerate(geq_constraints) if i not in eq_indices]
+        geq_constraints += [False] * num_eq
+    else:
+        A_expanded = A
+        b_expanded = b
 
-                # Add constraint x_i <= floor(x_i)
-                A_floor = A + [[0] * i + [1] + [0] * (len(c) - i - 1)]
-                b_floor = b + [floor_x]
+    # Convert >= constraints to <= constraints
+    geq_indices = [i for i, is_geq in enumerate(geq_constraints) if is_geq]
 
-                # Recursively solve the branch
-                sol_floor, val_floor = integer_linear_programming(c, A_floor, b_floor)
+    if geq_indices:
+        A_expanded[geq_indices, :] = -A_expanded[geq_indices, :]
+        b_expanded[geq_indices] = -b_expanded[geq_indices]
 
-                # Add constraint x_i >= ceil(x_i) which is -x_i <= -ceil(x_i)
-                A_ceil = A + [[0] * i + [-1] + [0] * (len(c) - i - 1)]
-                b_ceil = b + [-ceil_x]
+    # Convert variables that can be negative to two non-negative variables
+    # For each x_i, replace with x_i^+ - x_i^- where x_i^+, x_i^- >= 0
+    c_new = np.hstack([c, -c])  # Coefficients for x^+ and x^-
+    A_new = np.hstack([A_expanded, -A_expanded])
 
-                # Recursively solve the branch
-                sol_ceil, val_ceil = integer_linear_programming(c, A_ceil, b_ceil)
+    return c_new.tolist(), A_new.tolist(), b_expanded.tolist()
 
-                # Return the better solution
-                if sol_floor is None and sol_ceil is None:
-                    return None, None
-                elif sol_floor is None:
-                    return sol_ceil, val_ceil
-                elif sol_ceil is None:
+def integer_linear_programming(c: List[float], A: List[List[float]], b: List[float],
+                               method: str = 'branch-and-bound') -> Tuple[Optional[List[float]], Optional[float]]:
+    """
+    Solve an integer linear programming problem.
+
+    Args:
+        c: Coefficients of the objective function (maximize c^T x)
+        A: Constraint coefficients matrix (Ax <= b)
+        b: Constraint right-hand side values
+        method: Solution method ('branch-and-bound')
+
+    Returns:
+        Tuple of (optimal_solution, optimal_value) if a solution exists,
+        or (None, None) if the problem is infeasible or unbounded
+    """
+    if method != 'branch-and-bound':
+        raise ValueError(f"Unknown method: {method}")
+
+    # Solve the LP relaxation
+    lp_solution, lp_value = solve_lp(c, A, b)
+
+    if lp_solution is None:
+        return None, None  # Problem is infeasible or unbounded
+
+    # Check if all variables are integers
+    if all(abs(x - round(x)) < 1e-6 for x in lp_solution):
+        return [round(x) for x in lp_solution], lp_value
+
+    # Find a non-integer variable
+    for i, x in enumerate(lp_solution):
+        if abs(x - round(x)) >= 1e-6:
+            # Branch on this variable
+            floor_x = math.floor(x)
+            ceil_x = math.ceil(x)
+
+            # Add constraint x_i <= floor(x_i)
+            A_floor = A + [[0] * i + [1] + [0] * (len(c) - i - 1)]
+            b_floor = b + [floor_x]
+
+            # Recursively solve the branch
+            sol_floor, val_floor = integer_linear_programming(c, A_floor, b_floor)
+
+            # Add constraint x_i >= ceil(x_i) which is -x_i <= -ceil(x_i)
+            A_ceil = A + [[0] * i + [-1] + [0] * (len(c) - i - 1)]
+            b_ceil = b + [-ceil_x]
+
+            # Recursively solve the branch
+            sol_ceil, val_ceil = integer_linear_programming(c, A_ceil, b_ceil)
+
+            # Return the better solution
+            if sol_floor is None and sol_ceil is None:
+                return None, None
+            elif sol_floor is None:
+                return sol_ceil, val_ceil
+            elif sol_ceil is None:
+                return sol_floor, val_floor
+            else:
+                if val_floor >= val_ceil:
                     return sol_floor, val_floor
                 else:
-                    if val_floor >= val_ceil:
-                        return sol_floor, val_floor
-                    else:
-                        return sol_ceil, val_ceil
+                    return sol_ceil, val_ceil
 
-        # Should not reach here
-        return None, None
+    # Should not reach here
+    return None, None

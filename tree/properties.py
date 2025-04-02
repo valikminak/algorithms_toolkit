@@ -1,7 +1,6 @@
-# tree/properties.py
-from typing import List, Dict, Tuple, Set, Optional, Any
+from typing import Optional
 import collections
-from algorithms_toolkit.tree.base import TreeNode, BinaryTreeNode
+from tree.base import TreeNode, BinaryTreeNode
 
 
 def tree_height(root: TreeNode) -> int:

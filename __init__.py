@@ -4,24 +4,24 @@ from typing import Any, List, Dict, Tuple, Set, Optional, Callable, Union, Gener
 __version__ = "1.0.0"
 
 # Import all submodules to make them available from the package
-from algorithms.graph import *
-from algorithms.tree import *
-from algorithms.string import *
-from algorithms.dp import *
-from algorithms.sorting import *
-from algorithms.searching import *
-from algorithms.geometry import *
-from algorithms.advanced import *
-from algorithms.utils import *
+from graph import *
+from tree import *
+from string import *
+from dp import *
+from sorting import *
+from searching import *
+from geometry import *
+from advanced import *
+from utils import *
 
 
 # Example functions to showcase usage
 def graph_example():
-    """Run an example of graph algorithms."""
-    from algorithms.graph.base import Graph
-    from algorithms.graph.traversal import breadth_first_search, depth_first_search
-    from algorithms.graph.shortest_path import dijkstra
-    from algorithms.graph.mst import kruskal_mst
+    """Run an example of graph """
+    from graph.base import Graph
+    from graph.traversal import breadth_first_search, depth_first_search
+    from graph.shortest_path import dijkstra
+    from graph.mst import kruskal_mst
 
     # Create a weighted, undirected graph
     g = Graph(directed=False, weighted=True)
@@ -76,11 +76,11 @@ def graph_example():
 
 
 def tree_example():
-    """Run an example of tree algorithms."""
-    from algorithms.tree.base import BinaryTreeNode
-    from algorithms.tree.traversal import binary_tree_inorder_traversal, binary_tree_levelorder_traversal
-    from algorithms.tree.properties import binary_tree_height, binary_tree_is_balanced
-    from algorithms.tree.trie import Trie
+    """Run an example of tree """
+    from tree.base import BinaryTreeNode
+    from tree.traversal import binary_tree_inorder_traversal, binary_tree_levelorder_traversal
+    from tree.properties import binary_tree_height, binary_tree_is_balanced
+    from tree.trie import Trie
 
     # Create a binary tree
     root = BinaryTreeNode(1)
@@ -112,10 +112,10 @@ def tree_example():
 
 
 def string_example():
-    """Run an example of string algorithms."""
-    from algorithms.string.pattern_matching import kmp_search, rabin_karp_search
-    from algorithms.string.palindrome import longest_palindromic_substring, manacher_algorithm
-    from algorithms.string.sequence import longest_common_subsequence, edit_distance
+    """Run an example of string """
+    from string.pattern_matching import kmp_search, rabin_karp_search
+    from string.palindrome import longest_palindromic_substring, manacher_algorithm
+    from string.sequence import longest_common_subsequence, edit_distance
 
     text = "ABABDABACDABABCABAB"
     pattern = "ABABCABAB"
@@ -138,9 +138,9 @@ def string_example():
 
 
 def dp_example():
-    """Run an example of dynamic programming algorithms."""
-    from algorithms.dp.classic import knapsack_01_with_solution, rod_cutting_with_solution, coin_change
-    from algorithms.dp.sequence import longest_increasing_subsequence, longest_palindromic_subsequence
+    """Run an example of dynamic programming """
+    from dp.classic import knapsack_01_with_solution, rod_cutting_with_solution, coin_change
+    from dp.sequence import longest_increasing_subsequence, longest_palindromic_subsequence
 
     # Knapsack problem
     values = [60, 100, 120]
@@ -178,9 +178,8 @@ def dp_example():
 
 
 def sorting_example():
-    """Run an example of sorting algorithms."""
-    from algorithms.sorting.comparison import quick_sort, merge_sort, heap_sort
-    from algorithms.sorting.linear import counting_sort, radix_sort
+    """Run an example of sorting """
+    from sorting.linear import counting_sort, radix_sort
     import random
 
     # Create a random array
@@ -196,8 +195,8 @@ def sorting_example():
 
 
 def searching_example():
-    """Run an example of searching algorithms."""
-    from algorithms.searching.binary import binary_search, lower_bound, upper_bound
+    """Run an example of searching """
+    from searching.binary import binary_search, lower_bound, upper_bound
 
     # Create a sorted array
     arr = sorted([3, 5, 8, 10, 12, 15, 15, 15, 20, 25])
@@ -213,10 +212,10 @@ def searching_example():
 
 
 def geometry_example():
-    """Run an example of geometric algorithms."""
-    from algorithms.geometry.basic import Point
-    from algorithms.geometry.convex_hull import convex_hull
-    from algorithms.geometry.intersection import line_segment_intersection
+    """Run an example of geometric """
+    from geometry.basic import Point
+    from geometry.convex_hull import convex_hull
+    from geometry.intersection import line_segment_intersection
     import random
 
     # Create random points
@@ -244,9 +243,9 @@ def geometry_example():
 
 
 def advanced_example():
-    """Run an example of advanced algorithms."""
-    from algorithms.advanced.linear_programming import solve_lp
-    from algorithms.advanced.approximation import greedy_set_cover, greedy_vertex_cover
+    """Run an example of advanced """
+    from advanced.linear_programming import solve_lp
+    from advanced.approximation import greedy_set_cover, greedy_vertex_cover
 
     # Linear Programming Example
     c = [3, 2]  # Maximize 3x + 2y

@@ -1,6 +1,6 @@
 from typing import List, Tuple, Optional
 import math
-from algorithms_toolkit.geometry.basic import Point, orientation
+from geometry.basic import Point, orientation
 
 
 def convex_hull(points: List[Point]) -> List[Point]:

@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "algorithms"
+name = "algorithms_toolkit"
 version = "0.1.0"
 description = ""
 authors = ["valentyn <valikminak@gmail.com>"]
@@ -9,6 +9,7 @@ readme = "README.md"
 python = "^3.12"
 numpy = "^2.2.4"
 matplotlib = "^3.10.1"
+ipython = "^9.0.2"
 
 
 [build-system]

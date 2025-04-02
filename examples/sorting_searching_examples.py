@@ -1,16 +1,16 @@
 import random
-from algorithms_toolkit.sorting.comparison import (
+from sorting.comparison import (
     quick_sort, merge_sort, heap_sort, insertion_sort,
     selection_sort, bubble_sort, shell_sort
 )
-from algorithms_toolkit.sorting.linear import (
+from sorting.linear import (
     counting_sort, radix_sort, bucket_sort
 )
-from algorithms_toolkit.searching.binary import (
+from searching.binary import (
     binary_search, binary_search_recursive, lower_bound, upper_bound
 )
-from algorithms_toolkit.utils.visualization import visualize_sorting_algorithm
-from algorithms_toolkit.utils.performance import measure_execution_time, benchmark, plot_benchmark
+from utils.visualization import visualize_sorting_algorithm
+from utils.performance import measure_execution_time, benchmark, plot_benchmark
 
 
 def sorting_examples():

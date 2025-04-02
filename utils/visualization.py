@@ -1,4 +1,4 @@
-from typing import Any, Callable, List, Optional, Tuple
+from typing import Any, Callable, List
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.animation import FuncAnimation

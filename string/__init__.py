@@ -1,24 +1,24 @@
 # string/__init__.py
 
-from algorithms_toolkit.string.pattern_matching import (
+from string.pattern_matching import (
     kmp_search, rabin_karp_search, z_algorithm, boyer_moore_search
 )
-from algorithms_toolkit.string.palindrome import (
+from string.palindrome import (
     is_palindrome, longest_palindromic_substring, manacher_algorithm,
     count_palindromic_substrings
 )
-from algorithms_toolkit.string.sequence import (
+from string.sequence import (
     longest_common_subsequence, edit_distance, longest_increasing_subsequence,
     longest_common_substring
 )
-from algorithms_toolkit.string.aho_corasick import (
+from string.aho_corasick import (
     AhoCorasick, aho_corasick_search
 )
-from algorithms_toolkit.string.suffix import (
+from string.suffix import (
     SuffixTrieNode, SuffixTrie, SuffixTreeNode, SuffixTree, SuffixArray,
     z_algorithm_search
 )
-from algorithms_toolkit.string.compression import (
+from string.compression import (
     burrows_wheeler_transform, inverse_burrows_wheeler_transform,
     move_to_front_encode, move_to_front_decode,
     run_length_encode, run_length_decode,

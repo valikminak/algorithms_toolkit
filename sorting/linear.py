@@ -1,4 +1,3 @@
-# sorting/linear.py
 from typing import List, Optional, TypeVar, Union
 
 T = TypeVar('T')

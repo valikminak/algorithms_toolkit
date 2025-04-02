@@ -1,8 +1,8 @@
 import random
-from algorithms_toolkit.geometry.basic import Point, orientation, distance
-from algorithms_toolkit.geometry.convex_hull import convex_hull, graham_scan, quick_hull
-from algorithms_toolkit.geometry.intersection import line_segment_intersection, point_in_polygon, closest_pair_of_points
-from algorithms_toolkit.utils.visualization import visualize_convex_hull
+
+from geometry.convex_hull import convex_hull, graham_scan, quick_hull
+from geometry.intersection import line_segment_intersection, point_in_polygon, closest_pair_of_points
+from geometry.basic import Point, distance, orientation
 
 
 def basic_geometry_examples():

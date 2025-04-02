@@ -1,6 +1,6 @@
 from typing import List, Tuple, Optional, Union
 import math
-from algorithms_toolkit.geometry.basic import Point, orientation, on_segment
+from geometry.basic import Point, orientation, on_segment
 
 
 def line_segment_intersection(p1: Point, q1: Point, p2: Point, q2: Point) -> Optional[Point]:

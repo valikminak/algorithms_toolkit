@@ -1,18 +1,18 @@
-from algorithms_toolkit.tree.base import TreeNode, BinaryTreeNode
-from algorithms_toolkit.tree.traversal import (
+from tree.base import TreeNode, BinaryTreeNode
+from tree.traversal import (
     binary_tree_inorder_traversal, binary_tree_preorder_traversal,
     binary_tree_postorder_traversal, binary_tree_levelorder_traversal
 )
-from algorithms_toolkit.tree.properties import (
+from tree.properties import (
     binary_tree_height, binary_tree_is_balanced, binary_tree_is_bst,
     binary_tree_serialize, binary_tree_deserialize
 )
-from algorithms_toolkit.tree.balanced import AVLTree, RedBlackTree
-from algorithms_toolkit.tree.segment_tree import SegmentTree, create_sum_segment_tree
-from algorithms_toolkit.tree.fenwick_tree import FenwickTree
-from algorithms_toolkit.tree.trie import Trie
-from algorithms_toolkit.tree.lru_cache import LRUCache
-from algorithms_toolkit.utils.visualization import visualize_tree
+from tree.balanced import AVLTree, RedBlackTree
+from tree.segment_tree import SegmentTree, create_sum_segment_tree
+from tree.fenwick_tree import FenwickTree
+from tree.trie import Trie
+from tree.lru_cache import LRUCache
+from utils.visualization import visualize_tree
 
 
 def create_sample_binary_tree():

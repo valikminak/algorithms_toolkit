@@ -1,8 +1,7 @@
-# examples/advanced_examples.py
-from algorithms_toolkit.advanced.linear_programming import solve_lp
-from algorithms_toolkit.advanced.approximation import (
+from advanced.linear_programming import solve_lp
+from advanced.approximation import (
     greedy_set_cover, greedy_vertex_cover, greedy_knapsack,
-    greedy_traveling_salesman, greedy_bin_packing
+    greedy_bin_packing
 )
 
 
