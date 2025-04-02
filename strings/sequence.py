@@ -1,4 +1,4 @@
-from typing import List, Dict, Tuple, Set
+from typing import List
 import bisect
 
 
@@ -325,7 +325,7 @@ def longest_substring_without_repeating_characters(s: str) -> str:
     if not s:
         return ""
 
-    n = len(s)
+    len(s)
     char_index = {}  # Track the last position of each character
 
     start = 0

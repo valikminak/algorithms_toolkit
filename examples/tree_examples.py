@@ -1,4 +1,4 @@
-from tree.base import TreeNode, BinaryTreeNode
+from tree.base import BinaryTreeNode
 from tree.traversal import (
     binary_tree_inorder_traversal, binary_tree_preorder_traversal,
     binary_tree_postorder_traversal, binary_tree_levelorder_traversal
@@ -8,11 +8,10 @@ from tree.properties import (
     binary_tree_serialize, binary_tree_deserialize
 )
 from tree.balanced import AVLTree, RedBlackTree
-from tree.segment_tree import SegmentTree, create_sum_segment_tree
+from tree.segment_tree import create_sum_segment_tree
 from tree.fenwick_tree import FenwickTree
 from tree.trie import Trie
 from tree.lru_cache import LRUCache
-from utils.visualization import visualize_tree
 
 
 def create_sample_binary_tree():

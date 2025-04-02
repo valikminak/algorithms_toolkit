@@ -1,6 +1,5 @@
-from typing import List, Dict, Tuple, Set, Optional, Any, Union
+from typing import List, Tuple, Optional
 import numpy as np
-import collections
 import math
 
 
@@ -309,7 +308,7 @@ class InteriorPointSolver:
         r_c = x_slack * s - mu
 
         # Form the augmented system
-        D = np.diag(s / x_slack)
+        np.diag(s / x_slack)
         M = np.dot(A[:, n:], np.dot(np.diag(1.0 / s), np.diag(x_slack)))
 
         # Solve for dy

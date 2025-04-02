@@ -1,9 +1,6 @@
-from typing import List, Dict, Tuple, Set, Optional, Any, Union, Callable
-import heapq
+from typing import List, Dict, Tuple, Set, Any
 import random
 import math
-import collections
-import numpy as np
 
 
 def greedy_set_cover(universe: Set[Any], subsets: List[Set[Any]]) -> Tuple[List[int], float]:
@@ -408,7 +405,7 @@ def fptas_knapsack(values: List[float], weights: List[float], capacity: float, e
             remaining_value -= scaled_values[i - 1]
 
     # Calculate the actual value of the solution
-    actual_value = sum(values[i] for i in selected)
+    sum(values[i] for i in selected)
 
     # Approximation ratio: 1-ε
     approximation_ratio = 1 - epsilon
@@ -637,7 +634,7 @@ def greedy_bin_packing(items: List[float], bin_capacity: float) -> Tuple[List[Li
         - bins: List of bins, each bin is a list of item indices
         - approximation_ratio: Approximation ratio (11/9)
     """
-    n = len(items)
+    len(items)
 
     # Sort items in descending order
     sorted_items = [(i, size) for i, size in enumerate(items)]

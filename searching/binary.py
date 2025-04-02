@@ -1,5 +1,5 @@
 # searching/binary.py
-from typing import List, Optional, TypeVar, Any
+from typing import List, Optional, TypeVar
 import math
 
 T = TypeVar('T')
@@ -195,35 +195,6 @@ def exponential_search(arr: List[T], target: T) -> int:
 
     # Call binary search for the found range
     return binary_search(arr, target, i // 2, min(i, n - 1))
-
-
-def binary_search(arr: List[T], target: T, left: int = 0, right: Optional[int] = None) -> int:
-    """
-    Enhanced binary search algorithm with optional range parameters.
-
-    Args:
-        arr: Sorted list of elements
-        target: The value to search for
-        left: Left boundary index
-        right: Right boundary index
-
-    Returns:
-        Index of the target if found, -1 otherwise
-    """
-    if right is None:
-        right = len(arr) - 1
-
-    while left <= right:
-        mid = left + (right - left) // 2
-
-        if arr[mid] == target:
-            return mid
-        elif arr[mid] < target:
-            left = mid + 1
-        else:
-            right = mid - 1
-
-    return -1
 
 
 def jump_search(arr: List[T], target: T) -> int:

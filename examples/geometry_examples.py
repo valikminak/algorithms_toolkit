@@ -1,6 +1,6 @@
 import random
 
-from geometry.convex_hull import convex_hull, graham_scan, quick_hull
+from geometry.convex_hull import graham_scan, quick_hull
 from geometry.intersection import line_segment_intersection, point_in_polygon, closest_pair_of_points
 from geometry.basic import Point, distance, orientation
 

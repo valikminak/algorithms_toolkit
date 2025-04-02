@@ -1,4 +1,4 @@
-from typing import List, Dict, Tuple, Set, Optional, Any
+from typing import List, Tuple, Set, Any
 import collections
 
 def tarjan_scc(graph) -> List[List[Any]]:

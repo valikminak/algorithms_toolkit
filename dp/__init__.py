@@ -1,5 +1,3 @@
-# dp/__init__.py
-
 from dp.classic import (
     fibonacci_dp, coin_change, knapsack_01, knapsack_01_with_solution,
     rod_cutting, rod_cutting_with_solution, matrix_chain_multiplication,

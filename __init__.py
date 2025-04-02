@@ -1,12 +1,11 @@
 # __init__.py
-from typing import Any, List, Dict, Tuple, Set, Optional, Callable, Union, Generic, TypeVar
 
 __version__ = "1.0.0"
 
 # Import all submodules to make them available from the package
 from graph import *
 from tree import *
-from string import *
+from strings import *
 from dp import *
 from sorting import *
 from searching import *
@@ -113,9 +112,9 @@ def tree_example():
 
 def string_example():
     """Run an example of string """
-    from string.pattern_matching import kmp_search, rabin_karp_search
-    from string.palindrome import longest_palindromic_substring, manacher_algorithm
-    from string.sequence import longest_common_subsequence, edit_distance
+    from strings.pattern_matching import kmp_search, rabin_karp_search
+    from strings.palindrome import longest_palindromic_substring, manacher_algorithm
+    from strings.sequence import longest_common_subsequence, edit_distance
 
     text = "ABABDABACDABABCABAB"
     pattern = "ABABCABAB"
@@ -140,7 +139,7 @@ def string_example():
 def dp_example():
     """Run an example of dynamic programming """
     from dp.classic import knapsack_01_with_solution, rod_cutting_with_solution, coin_change
-    from dp.sequence import longest_increasing_subsequence, longest_palindromic_subsequence
+    from dp.sequence import longest_increasing_subsequence
 
     # Knapsack problem
     values = [60, 100, 120]

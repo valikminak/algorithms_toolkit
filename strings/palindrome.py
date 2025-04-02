@@ -1,4 +1,3 @@
-from typing import List, Tuple
 
 
 def is_palindrome(s: str) -> bool:

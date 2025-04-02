@@ -1,4 +1,4 @@
-from typing import List, Dict, Tuple, Optional
+from typing import List
 
 
 def kmp_search(text: str, pattern: str) -> List[int]:

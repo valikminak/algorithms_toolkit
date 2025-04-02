@@ -1,6 +1,4 @@
-# dp/classic.py
-from typing import List, Dict, Tuple, Set, Optional, Any
-import math
+from typing import List, Tuple
 
 
 def fibonacci_dp(n: int) -> int:

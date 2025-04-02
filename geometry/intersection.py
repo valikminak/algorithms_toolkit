@@ -1,4 +1,4 @@
-from typing import List, Tuple, Optional, Union
+from typing import List, Tuple, Optional
 import math
 from geometry.basic import Point, orientation, on_segment
 

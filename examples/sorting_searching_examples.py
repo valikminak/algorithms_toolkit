@@ -4,13 +4,12 @@ from sorting.comparison import (
     selection_sort, bubble_sort, shell_sort
 )
 from sorting.linear import (
-    counting_sort, radix_sort, bucket_sort
+    counting_sort, radix_sort
 )
 from searching.binary import (
     binary_search, binary_search_recursive, lower_bound, upper_bound
 )
-from utils.visualization import visualize_sorting_algorithm
-from utils.performance import measure_execution_time, benchmark, plot_benchmark
+from utils.performance import benchmark
 
 
 def sorting_examples():
@@ -18,7 +17,7 @@ def sorting_examples():
     # Create random array
     random.seed(42)
     arr = [random.randint(1, 100) for _ in range(20)]
-    original_arr = arr.copy()
+    arr.copy()
 
     print(f"Original array: {arr}")
 
