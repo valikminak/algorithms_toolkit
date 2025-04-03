@@ -1,5 +1,5 @@
-from advanced.linear_programming import solve_lp
-from advanced.approximation import (
+from kosmos.advanced import solve_lp
+from kosmos.advanced.approximation import (
     greedy_set_cover, greedy_vertex_cover, greedy_knapsack,
     greedy_bin_packing
 )

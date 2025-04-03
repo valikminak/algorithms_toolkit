@@ -1,12 +1,12 @@
 import random
-from sorting.comparison import (
+from kosmos.sorting import (
     quick_sort, merge_sort, heap_sort, insertion_sort,
     selection_sort, bubble_sort, shell_sort
 )
-from sorting.linear import (
+from kosmos.sorting import (
     counting_sort, radix_sort
 )
-from searching.binary import (
+from kosmos.searching.binary import (
     binary_search, binary_search_recursive, lower_bound, upper_bound
 )
 from utils.performance import benchmark

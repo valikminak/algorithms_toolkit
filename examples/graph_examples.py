@@ -1,7 +1,7 @@
-from graph.base import Graph
-from graph.traversal import breadth_first_search, depth_first_search, topological_sort
-from graph.shortest_path import dijkstra, bellman_ford, floyd_warshall
-from graph.mst import kruskal_mst, prim_mst
+from kosmos.graph import Graph
+from kosmos.graph.traversal import breadth_first_search, depth_first_search, topological_sort
+from kosmos.graph import dijkstra, bellman_ford, floyd_warshall
+from kosmos.graph import kruskal_mst, prim_mst
 
 
 def create_sample_graph():

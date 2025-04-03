@@ -1,7 +1,8 @@
 // main.js - Entry point for the JavaScript application
 import { initVisualization, renderVisualization, clearVisualization } from './visualization.js';
-import { setupUIControls, getInputArray, getAnimationSpeed } from './ui-controls.js';
-import { fetchCategories, fetchAlgorithms, runAlgorithm, compareAlgorithms } from './algorithms.js';
+import { setupUIControls, getInputArray, getAnimationSpeed, getAlgorithmOptions } from './ui-controls.js';
+import { fetchCategories, fetchAlgorithms, runAlgorithm, compareAlgorithms, fetchAlgorithmCode } from './algorithms.js';
+import GraphUI from './graph-ui.js';
 
 // DOM elements
 const categoryList = document.getElementById('category-list');
@@ -17,6 +18,7 @@ let currentCategory = null;
 let currentAlgorithm = null;
 let visualizationData = null;
 let isAnimationRunning = false;
+let graphUI = null;
 
 // Initialize the application
 async function initApp() {
@@ -69,10 +71,45 @@ async function selectCategory(category) {
     try {
         const algorithms = await fetchAlgorithms(category.id);
         renderAlgorithms(algorithms);
+
+        // Special handling for graph category
+        if (category.id === 'graph') {
+            initGraphUI();
+        } else {
+            // Clean up graph UI if it exists
+            if (graphUI) {
+                const graphContainer = document.getElementById('graph-editor-container');
+                if (graphContainer) {
+                    graphContainer.innerHTML = '';
+                    graphContainer.style.display = 'none';
+                }
+            }
+        }
     } catch (error) {
         console.error(`Failed to load algorithms for ${category.id}:`, error);
         showError(`Failed to load algorithms for ${category.name}.`);
     }
+}
+
+// Initialize the graph editor UI
+function initGraphUI() {
+    // Create or show graph editor container
+    let graphContainer = document.getElementById('graph-editor-container');
+
+    if (!graphContainer) {
+        graphContainer = document.createElement('div');
+        graphContainer.id = 'graph-editor-container';
+        graphContainer.className = 'graph-editor-container';
+
+        // Insert after the controls panel
+        const controlsPanel = document.querySelector('.controls-panel');
+        controlsPanel.parentNode.insertBefore(graphContainer, controlsPanel.nextSibling);
+    }
+
+    graphContainer.style.display = 'block';
+
+    // Initialize the graph UI
+    graphUI = new GraphUI(graphContainer);
 }
 
 // Render the dropdown of algorithms
@@ -123,8 +160,25 @@ async function runCurrentAlgorithm() {
     runButton.textContent = 'Running...';
 
     try {
-        const inputArray = getInputArray();
-        visualizationData = await runAlgorithm(currentCategory, currentAlgorithm, inputArray);
+        let options = getAlgorithmOptions(currentCategory, currentAlgorithm);
+
+        // Special handling for graph algorithms
+        if (currentCategory === 'graph' && graphUI) {
+            const graphData = graphUI.getGraphData();
+            const algorithmParams = graphUI.getAlgorithmParams();
+
+            options = {
+                ...options,
+                graph: graphData,
+                source: algorithmParams.startVertex,
+                target: algorithmParams.targetVertex
+            };
+        } else {
+            // For non-graph algorithms, use the input array
+            options.input = getInputArray();
+        }
+
+        visualizationData = await runAlgorithm(currentCategory, currentAlgorithm, options);
         renderVisualization(visualizationData, getAnimationSpeed());
     } catch (error) {
         console.error('Failed to run algorithm:', error);
@@ -138,13 +192,9 @@ async function runCurrentAlgorithm() {
 // Load and display the algorithm's code
 function loadAlgorithmCode(category, algorithmId) {
     const codeElement = document.getElementById('algorithm-code');
+    codeElement.textContent = 'Loading code...';
 
-    // In a real implementation, you would fetch this from the server
-    // For now, just show a placeholder
-    codeElement.textContent = `// Loading code for ${algorithmId}...`;
-
-    fetch(`/api/${category}/code?algorithm=${algorithmId}`)
-        .then(response => response.json())
+    fetchAlgorithmCode(category, algorithmId)
         .then(data => {
             codeElement.textContent = data.code || 'Code not available';
         })
@@ -160,12 +210,27 @@ function loadAlgorithmPerformance(category, algorithmId) {
     const performanceExplanation = document.getElementById('performance-explanation');
 
     performanceChart.innerHTML = 'Loading performance data...';
+    performanceExplanation.innerHTML = '';
 
-    // In a real implementation, you would fetch performance data
-    // For now, just show placeholders
+    // Fetch performance data based on category and algorithm
+    fetch(`/api/${category}/performance?algorithm=${algorithmId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.chart) {
+                // If we have a chart image
+                performanceChart.innerHTML = `<img src="${data.chart}" alt="Performance Chart" style="max-width:100%;">`;
+            } else {
+                performanceChart.innerHTML = 'No performance data available';
+            }
 
-    // This would be an async call in a real implementation
-    // that would load and render a chart
+            if (data.explanation) {
+                performanceExplanation.innerHTML = data.explanation;
+            }
+        })
+        .catch(error => {
+            console.error('Failed to load performance data:', error);
+            performanceChart.innerHTML = 'Failed to load performance data';
+        });
 }
 
 // Load theoretical background
@@ -173,7 +238,22 @@ function loadAlgorithmTheory(category, algorithmId) {
     const theoryContent = document.getElementById('theory-content');
     theoryContent.innerHTML = 'Loading theoretical background...';
 
-    // In a real implementation, you would fetch theory content
+    fetch(`/api/${category}/theory?algorithm=${algorithmId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.content) {
+                theoryContent.innerHTML = data.content;
+            } else {
+                theoryContent.innerHTML = `
+                    <h3>${algorithmId.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</h3>
+                    <p>Theoretical background information is not available for this algorithm.</p>
+                `;
+            }
+        })
+        .catch(error => {
+            console.error('Failed to load theory content:', error);
+            theoryContent.innerHTML = 'Failed to load theoretical background';
+        });
 }
 
 // Load practical applications
@@ -181,7 +261,22 @@ function loadAlgorithmApplications(category, algorithmId) {
     const applicationsContent = document.getElementById('applications-content');
     applicationsContent.innerHTML = 'Loading practical applications...';
 
-    // In a real implementation, you would fetch applications content
+    fetch(`/api/${category}/applications?algorithm=${algorithmId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.content) {
+                applicationsContent.innerHTML = data.content;
+            } else {
+                applicationsContent.innerHTML = `
+                    <h3>Applications of ${algorithmId.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</h3>
+                    <p>Application information is not available for this algorithm.</p>
+                `;
+            }
+        })
+        .catch(error => {
+            console.error('Failed to load applications content:', error);
+            applicationsContent.innerHTML = 'Failed to load practical applications';
+        });
 }
 
 // Setup all event listeners
@@ -223,12 +318,58 @@ function setupEventListeners() {
         const inputField = document.getElementById('custom-input-field');
         // Implementation handled by ui-controls.js
     });
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', e => {
+        // Prevent shortcuts when typing in input fields
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+            return;
+        }
+
+        switch (e.key) {
+            case 'r':
+            case 'R':
+                if (!runButton.disabled) {
+                    runCurrentAlgorithm();
+                }
+                break;
+        }
+    });
 }
 
 // Show error message
 function showError(message) {
-    // You could create a toast notification system here
-    alert(message);
+    const errorContainer = document.getElementById('error-container') || createErrorContainer();
+
+    const errorMessage = document.createElement('div');
+    errorMessage.className = 'error-message';
+    errorMessage.innerHTML = `
+        <span>${message}</span>
+        <button class="close-btn">×</button>
+    `;
+
+    errorContainer.appendChild(errorMessage);
+
+    // Add close button handler
+    errorMessage.querySelector('.close-btn').addEventListener('click', () => {
+        errorContainer.removeChild(errorMessage);
+    });
+
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+        if (errorContainer.contains(errorMessage)) {
+            errorContainer.removeChild(errorMessage);
+        }
+    }, 5000);
+}
+
+// Create error container if it doesn't exist
+function createErrorContainer() {
+    const container = document.createElement('div');
+    container.id = 'error-container';
+    container.className = 'error-container';
+    document.body.appendChild(container);
+    return container;
 }
 
 // Initialize the app when the DOM is loaded

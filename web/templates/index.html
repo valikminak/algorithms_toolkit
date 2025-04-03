@@ -6,6 +6,7 @@
     <title>Algorithm Toolkit Dashboard</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/normalize.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/graph-ui.css') }}">
 </head>
 <body>
     <div class="app-container">
@@ -69,6 +70,11 @@
                         <input type="text" id="custom-input-field" placeholder="e.g., 5,3,8,1,2,9">
                         <button id="apply-custom-input">Apply</button>
                     </div>
+                </div>
+
+                <!-- Graph editor container will be added here by JavaScript -->
+                <div id="graph-editor-container" class="graph-editor-container" style="display: none;">
+                    <!-- Graph editor will be initialized here by JavaScript -->
                 </div>
 
                 <!-- Tabs for additional content -->

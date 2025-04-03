@@ -1,8 +1,9 @@
 import random
 
-from geometry.convex_hull import graham_scan, quick_hull
-from geometry.intersection import line_segment_intersection, point_in_polygon, closest_pair_of_points
-from geometry.basic import Point, distance, orientation
+from kosmos.geometry import graham_scan, quick_hull
+from kosmos.geometry import line_segment_intersection, point_in_polygon, closest_pair_of_points
+from kosmos.geometry import Point, orientation
+from kosmos.geometry.basic import distance
 
 
 def basic_geometry_examples():

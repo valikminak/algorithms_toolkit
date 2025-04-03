@@ -1,8 +1,8 @@
-from dp.classic import (
+from kosmos.dp.classic import (
     fibonacci_dp, coin_change, knapsack_01, knapsack_01_with_solution,
     rod_cutting, rod_cutting_with_solution, matrix_chain_multiplication
 )
-from dp.sequence import (
+from kosmos.dp.sequence import (
     longest_increasing_subsequence, longest_common_subsequence,
     longest_common_substring, longest_palindromic_subsequence
 )

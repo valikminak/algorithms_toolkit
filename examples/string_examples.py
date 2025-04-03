@@ -1,9 +1,9 @@
-from strings.pattern_matching import kmp_search, rabin_karp_search, z_algorithm
-from strings.palindrome import is_palindrome, longest_palindromic_substring, manacher_algorithm
-from strings.sequence import longest_common_subsequence, edit_distance, longest_increasing_subsequence
-from strings.aho_corasick import AhoCorasick
-from strings.suffix import SuffixArray
-from strings.compression import run_length_encode, run_length_decode, huffman_coding, huffman_decode
+from kosmos.strings.pattern_matching import kmp_search, rabin_karp_search, z_algorithm
+from kosmos.strings.palindrome import is_palindrome, longest_palindromic_substring, manacher_algorithm
+from kosmos.strings.sequence import longest_common_subsequence, edit_distance, longest_increasing_subsequence
+from kosmos.strings import AhoCorasick
+from kosmos.strings import SuffixArray
+from kosmos.strings import run_length_encode, run_length_decode, huffman_coding, huffman_decode
 
 
 def pattern_matching_example():
