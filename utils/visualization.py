@@ -1,11 +1,11 @@
-from typing import Any, Callable, List
+from collections import deque
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.animation import FuncAnimation
 from IPython.display import HTML
+import networkx as nx
+from typing import List, Any, Callable, Tuple, Optional
 import math
-from collections import deque
-
 
 def visualize_graph(graph, layout='spring', node_labels=True, edge_labels=True,
                     node_color='lightblue', edge_color='black', figsize=(10, 8)):
@@ -1664,5 +1664,834 @@ def visualize_dynamic_programming(algorithm: Callable, problem_instance: Any,
 
     plt.tight_layout()
     plt.close()  # Don't display immediately
+
+    return HTML(anim.to_jshtml())
+
+def visualize_fitness_history(fitness_history: List[float],
+                              best_fitness_history: Optional[List[float]] = None,
+                              title: str = "Fitness Over Generations",
+                              figsize: Tuple[int, int] = (10, 6)):
+    """
+    Visualize the fitness evolution over generations in a genetic algorithm.
+
+    Args:
+        fitness_history: List of average fitness values per generation
+        best_fitness_history: Optional list of the best fitness values per generation
+        title: Plot title
+        figsize: Figure size as (width, height) tuple
+    """
+    plt.figure(figsize=figsize)
+    generations = range(1, len(fitness_history) + 1)
+
+    plt.plot(generations, fitness_history, 'b-', label='Average Fitness')
+
+    if best_fitness_history is not None:
+        plt.plot(generations, best_fitness_history, 'r-', label='Best Fitness')
+
+    plt.title(title)
+    plt.xlabel('Generation')
+    plt.ylabel('Fitness')
+    plt.legend()
+    plt.grid(True, linestyle='--', alpha=0.7)
+    plt.tight_layout()
+    plt.show()
+
+
+def visualize_population_diversity(population: List[Any],
+                                   distance_function: Callable[[Any, Any], float],
+                                   generation: int = 0,
+                                   title: str = "Population Diversity",
+                                   figsize: Tuple[int, int] = (10, 8)):
+    """
+    Visualize the diversity of a population in a genetic algorithm using MDS.
+
+    Args:
+        population: List of individuals in the population
+        distance_function: Function to calculate distance between two individuals
+        generation: Current generation number
+        title: Plot title
+        figsize: Figure size as (width, height) tuple
+    """
+    try:
+        from sklearn.manifold import MDS
+    except ImportError:
+        print("scikit-learn is required for diversity visualization. Install with: pip install scikit-learn")
+        return
+
+    # Calculate pairwise distances between individuals
+    n = len(population)
+    distance_matrix = np.zeros((n, n))
+
+    for i in range(n):
+        for j in range(i + 1, n):
+            distance = distance_function(population[i], population[j])
+            distance_matrix[i, j] = distance
+            distance_matrix[j, i] = distance
+
+    # Apply MDS to project individuals to 2D space
+    mds = MDS(n_components=2, dissimilarity='precomputed', random_state=42)
+    positions = mds.fit_transform(distance_matrix)
+
+    # Visualize the population
+    plt.figure(figsize=figsize)
+
+    plt.scatter(positions[:, 0], positions[:, 1], alpha=0.7)
+
+    plt.title(f"{title} (Generation {generation})")
+    plt.xlabel('Dimension 1')
+    plt.ylabel('Dimension 2')
+    plt.grid(True, linestyle='--', alpha=0.3)
+    plt.tight_layout()
+    plt.show()
+
+
+def visualize_tsp_solution(distance_matrix: List[List[float]],
+                           tour: List[int],
+                           title: str = "TSP Solution",
+                           figsize: Tuple[int, int] = (10, 8)):
+    """
+    Visualize a solution to the Traveling Salesman Problem.
+
+    Args:
+        distance_matrix: Matrix of distances between cities
+        tour: List of city indices representing the tour
+        title: Plot title
+        figsize: Figure size as (width, height) tuple
+    """
+    n = len(distance_matrix)
+
+    # Create a fully connected graph
+    G = nx.Graph()
+
+    # Generate node positions (in a circle by default)
+    pos = {}
+    for i in range(n):
+        angle = 2 * math.pi * i / n
+        pos[i] = (math.cos(angle), math.sin(angle))
+
+    # Add nodes
+    for i in range(n):
+        G.add_node(i)
+
+    # Add all edges with their weights
+    for i in range(n):
+        for j in range(i + 1, n):
+            G.add_edge(i, j, weight=distance_matrix[i][j])
+
+    # Create figure
+    plt.figure(figsize=figsize)
+
+    # Draw all nodes
+    nx.draw_networkx_nodes(G, pos, node_color='lightblue', node_size=500)
+
+    # Highlight the tour edges
+    tour_edges = [(tour[i], tour[(i + 1) % n]) for i in range(n)]
+    nx.draw_networkx_edges(G, pos, edgelist=tour_edges, width=2, edge_color='red')
+
+    # Add node labels
+    nx.draw_networkx_labels(G, pos, font_size=12)
+
+    # Calculate the tour length
+    tour_length = sum(distance_matrix[tour[i]][tour[(i + 1) % n]] for i in range(n))
+
+    plt.title(f"{title}\nTour Length: {tour_length:.2f}")
+    plt.axis('off')
+    plt.tight_layout()
+    plt.show()
+
+
+def animate_genetic_algorithm(ga_instance, problem_instance,
+                              iterations_per_frame: int = 1,
+                              max_frames: int = 100,
+                              figsize: Tuple[int, int] = (10, 6),
+                              visualize_solution: Callable = None):
+    """
+    Create an animation of a genetic algorithm's progress.
+
+    Args:
+        ga_instance: Instance of a genetic algorithm class
+        problem_instance: The problem to solve
+        iterations_per_frame: Number of generations to run between frames
+        max_frames: Maximum number of frames in the animation
+        figsize: Figure size as (width, height) tuple
+        visualize_solution: Function to visualize the current best solution
+
+    Returns:
+        Animation HTML that can be displayed in a notebook
+    """
+    # Create figure with two subplots
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=figsize)
+
+    # Store history
+    fitness_history = []
+    best_fitness_history = []
+    best_individuals = []
+
+    # Set up the run function that will be called to make each frame
+    def run_generations(frame):
+        nonlocal ga_instance, problem_instance
+
+        # Run the algorithm for a few iterations
+        for _ in range(iterations_per_frame):
+            # Extract the current state
+            population = ga_instance.population
+            evaluated_population = ga_instance.evaluate_population(population)
+
+            # Get best and average fitness
+            current_best = max(evaluated_population, key=lambda x: x[1])
+            avg_fitness = sum(fitness for _, fitness in evaluated_population) / len(evaluated_population)
+
+            # Store history
+            fitness_history.append(avg_fitness)
+            best_fitness_history.append(current_best[1])
+            best_individuals.append(current_best[0])
+
+            # Create next generation
+            population = ga_instance.create_next_generation(evaluated_population)
+            ga_instance.population = population
+
+        # Clear the axes for new frame
+        ax1.clear()
+        ax2.clear()
+
+        # Plot fitness history
+        generations = range(1, len(fitness_history) + 1)
+        ax1.plot(generations, fitness_history, 'b-', label='Average Fitness')
+        ax1.plot(generations, best_fitness_history, 'r-', label='Best Fitness')
+        ax1.set_title('Fitness Evolution')
+        ax1.set_xlabel('Generation')
+        ax1.set_ylabel('Fitness')
+        ax1.legend()
+        ax1.grid(True, linestyle='--', alpha=0.7)
+
+        # Visualize current best solution if a visualization function is provided
+        if visualize_solution:
+            visualize_solution(ax2, best_individuals[-1], problem_instance)
+        else:
+            ax2.text(0.5, 0.5, f"Best Fitness: {best_fitness_history[-1]:.4f}",
+                     ha='center', va='center', fontsize=12)
+            ax2.set_title('Current Best Solution')
+            ax2.axis('off')
+
+        # Return all artists that need to be updated
+        return []
+
+    # Create the animation
+    anim = FuncAnimation(fig, run_generations, frames=max_frames,
+                         interval=200, blit=False)
+
+    plt.close(fig)  # Prevent display of the figure
+
+    return HTML(anim.to_jshtml())
+
+
+def animate_tsp_solution(ga_instance, distance_matrix,
+                         iterations_per_frame: int = 1,
+                         max_frames: int = 100,
+                         figsize: Tuple[int, int] = (12, 6)):
+    """
+    Create an animation specifically for the TSP problem.
+
+    Args:
+        ga_instance: Instance of the TSPGeneticSolver
+        distance_matrix: Matrix of distances between cities
+        iterations_per_frame: Number of generations to run between frames
+        max_frames: Maximum number of frames in the animation
+        figsize: Figure size as (width, height) tuple
+
+    Returns:
+        Animation HTML that can be displayed in a notebook
+    """
+
+    # Create a visualization function for TSP
+    def visualize_tsp(ax, tour, distance_matrix):
+        n = len(distance_matrix)
+
+        # Generate node positions (in a circle)
+        pos = {}
+        for i in range(n):
+            angle = 2 * math.pi * i / n
+            pos[i] = (math.cos(angle), math.sin(angle))
+
+        # Clear the axis
+        ax.clear()
+
+        # Draw the nodes
+        for i in range(n):
+            ax.plot(pos[i][0], pos[i][1], 'o', markersize=10, color='lightblue')
+            ax.text(pos[i][0] * 1.1, pos[i][1] * 1.1, str(i), fontsize=12)
+
+        # Draw the tour edges
+        for i in range(n):
+            j = (i + 1) % n
+            ax.plot([pos[tour[i]][0], pos[tour[j]][0]],
+                    [pos[tour[i]][1], pos[tour[j]][1]], 'r-', linewidth=2)
+
+        # Calculate tour length
+        tour_length = sum(distance_matrix[tour[i]][tour[(i + 1) % n]] for i in range(n))
+
+        ax.set_title(f"TSP Tour (Length: {tour_length:.2f})")
+        ax.set_xlim(-1.5, 1.5)
+        ax.set_ylim(-1.5, 1.5)
+        ax.axis('equal')
+        ax.axis('off')
+
+    return animate_genetic_algorithm(
+        ga_instance=ga_instance,
+        problem_instance=distance_matrix,
+        iterations_per_frame=iterations_per_frame,
+        max_frames=max_frames,
+        figsize=figsize,
+        visualize_solution=visualize_tsp
+    )
+
+
+def visualize_nsga2_front(solutions, objective_functions,
+                          title: str = "Pareto Front",
+                          figsize: Tuple[int, int] = (10, 8)):
+    """
+    Visualize the Pareto front for a multi-objective optimization problem.
+
+    Args:
+        solutions: List of solutions (chromosomes, individuals)
+        objective_functions: List of objective functions to evaluate
+        title: Plot title
+        figsize: Figure size as (width, height) tuple
+    """
+    # Evaluate solutions
+    objective_values = []
+    for solution in solutions:
+        values = [func(solution) for func in objective_functions]
+        objective_values.append(values)
+
+    # Convert to numpy array for easier manipulation
+    objective_values = np.array(objective_values)
+
+    # Create figure
+    plt.figure(figsize=figsize)
+
+    # For 2D objective space
+    if len(objective_functions) == 2:
+        plt.scatter(objective_values[:, 0], objective_values[:, 1], c='blue', alpha=0.7)
+        plt.xlabel(f'Objective 1')
+        plt.ylabel(f'Objective 2')
+
+    # For 3D objective space
+    elif len(objective_functions) == 3:
+        ax = plt.axes(projection='3d')
+        ax.scatter(objective_values[:, 0], objective_values[:, 1], objective_values[:, 2],
+                   c='blue', alpha=0.7)
+        ax.set_xlabel(f'Objective 1')
+        ax.set_ylabel(f'Objective 2')
+        ax.set_zlabel(f'Objective 3')
+
+    else:
+        # For higher dimensions, use a parallel coordinates plot
+        try:
+            from pandas.plotting import parallel_coordinates
+            import pandas as pd
+
+            # Create a DataFrame
+            df = pd.DataFrame(objective_values,
+                              columns=[f'Objective {i + 1}' for i in range(len(objective_functions))])
+            df['Solution'] = 'Pareto Optimal'
+
+            # Normalize the values for better visualization
+            for col in df.columns[:-1]:
+                if df[col].max() != df[col].min():
+                    df[col] = (df[col] - df[col].min()) / (df[col].max() - df[col].min())
+
+            # Plot
+            parallel_coordinates(df, 'Solution', colormap='viridis')
+
+        except ImportError:
+            plt.text(0.5, 0.5, f"Visualization for {len(objective_functions)} objectives requires pandas",
+                     ha='center', va='center')
+
+    plt.title(title)
+    plt.grid(True, linestyle='--', alpha=0.7)
+    plt.tight_layout()
+    plt.show()
+
+
+def animate_nsga2(nsga2_instance, problem_instance,
+                  iterations_per_frame: int = 1,
+                  max_frames: int = 100,
+                  figsize: Tuple[int, int] = (12, 6)):
+    """
+    Create an animation for the NSGA-II algorithm.
+
+    Args:
+        nsga2_instance: Instance of the NSGA2 class
+        problem_instance: The problem to solve
+        iterations_per_frame: Number of generations to run between frames
+        max_frames: Maximum number of frames in the animation
+        figsize: Figure size as (width, height) tuple
+
+    Returns:
+        Animation HTML that can be displayed in a notebook
+    """
+    # Create figure with two subplots (one for objectives, one for decision variables)
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=figsize)
+
+    # Get dimensionality of the problem
+    num_objectives = nsga2_instance.num_objectives
+
+    # Store history
+    fronts_history = []
+
+    # Initialize population
+    population = nsga2_instance.initialize_population()
+
+    # Set up the run function that will be called to make each frame
+    def run_generations(frame):
+        nonlocal nsga2_instance, population
+
+        # Run the algorithm for a few iterations
+        for _ in range(iterations_per_frame):
+            # Evaluate population
+            evaluated_population = nsga2_instance.evaluate_population(population)
+
+            # Get non-dominated fronts
+            fronts = nsga2_instance.fast_non_dominated_sort(evaluated_population)
+
+            # Store first front (Pareto optimal solutions)
+            fronts_history.append([evaluated_population[i] for i in fronts[0]])
+
+            # Calculate crowding distance
+            crowding_distances = [
+                nsga2_instance.crowding_distance_assignment(evaluated_population, front)
+                for front in fronts
+            ]
+
+            # Select parents and create offspring
+            parents = nsga2_instance.tournament_selection(evaluated_population, fronts, crowding_distances)
+            offspring = nsga2_instance.create_offspring(parents)
+
+            # Update population with the offspring
+            population = offspring
+
+        # Clear the axes for new frame
+        ax1.clear()
+        ax2.clear()
+
+        # Get the latest Pareto front
+        current_front = fronts_history[-1]
+
+        # Extract objective values
+        objective_values = [chrom[1] for chrom in current_front]
+
+        # Plot objectives (2D case for simplicity)
+        if num_objectives >= 2:
+            ax1.scatter([v[0] for v in objective_values], [v[1] for v in objective_values],
+                        c='blue', alpha=0.7)
+            ax1.set_xlabel('Objective 1')
+            ax1.set_ylabel('Objective 2')
+            ax1.set_title('Objective Space (Pareto Front)')
+            ax1.grid(True, linestyle='--', alpha=0.7)
+
+        # Plot decision variables (using parallel coordinates if available)
+        try:
+            from pandas.plotting import parallel_coordinates
+            import pandas as pd
+
+            # Get decision variables
+            decision_vars = [chrom[0] for chrom in current_front]
+
+            # Create a DataFrame
+            df = pd.DataFrame(decision_vars,
+                              columns=[f'Var {i + 1}' for i in range(len(decision_vars[0]))])
+            df['Solution'] = 'Pareto Optimal'
+
+            # Normalize for better visualization
+            for col in df.columns[:-1]:
+                if df[col].max() != df[col].min():
+                    df[col] = (df[col] - df[col].min()) / (df[col].max() - df[col].min())
+
+            # Plot
+            parallel_coordinates(df, 'Solution', ax=ax2, colormap='viridis')
+            ax2.set_title('Decision Variable Space')
+
+        except (ImportError, ValueError):
+            # Fallback visualization
+            if len(current_front) > 0:
+                ax2.text(0.5, 0.5, f"Front Size: {len(current_front)}\nGeneration: {len(fronts_history)}",
+                         ha='center', va='center')
+            ax2.set_title('Current Generation Information')
+            ax2.axis('off')
+
+        # Add generation number
+        fig.suptitle(f'Generation {len(fronts_history)}', fontsize=16)
+
+        # Return all artists that need to be updated
+        return []
+
+    # Create the animation
+    anim = FuncAnimation(fig, run_generations, frames=max_frames,
+                         interval=200, blit=False)
+
+    plt.close(fig)  # Prevent display of the figure
+
+    return HTML(anim.to_jshtml())
+
+
+def visualize_binary_ga_solution(chromosome: List[int],
+                                 title: str = "Binary Solution",
+                                 figsize: Tuple[int, int] = (10, 4)):
+    """
+    Visualize a binary chromosome from a genetic algorithm.
+
+    Args:
+        chromosome: Binary chromosome (list of 0s and 1s)
+        title: Plot title
+        figsize: Figure size as (width, height) tuple
+    """
+    plt.figure(figsize=figsize)
+
+    # Create a grid for the bits
+    n = len(chromosome)
+    rows = 1
+    cols = n
+
+    # If the chromosome is too long, arrange in multiple rows
+    if n > 50:
+        rows = math.ceil(n / 50)
+        cols = min(n, 50)
+
+    # Create the plot
+    plt.imshow([chromosome], cmap='binary', aspect='auto')
+
+    # Add gridlines
+    plt.grid(which='both', color='gray', linestyle='-', linewidth=0.5)
+
+    # Add bit indices
+    if n <= 50:
+        plt.xticks(range(n), [str(i) for i in range(n)])
+    else:
+        plt.xticks([])
+
+    plt.yticks([])
+    plt.title(title)
+    plt.tight_layout()
+    plt.show()
+
+
+def animate_binary_ga(ga_instance, fitness_function,
+                      iterations_per_frame: int = 1,
+                      max_frames: int = 100,
+                      figsize: Tuple[int, int] = (12, 6)):
+    """
+    Create an animation for a binary genetic algorithm.
+
+    Args:
+        ga_instance: Instance of the BinaryGeneticAlgorithm class
+        fitness_function: Function to evaluate fitness
+        iterations_per_frame: Number of generations to run between frames
+        max_frames: Maximum number of frames in the animation
+        figsize: Figure size as (width, height) tuple
+
+    Returns:
+        Animation HTML that can be displayed in a notebook
+    """
+    # Create figure with two subplots
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=figsize)
+
+    # Store history
+    fitness_history = []
+    best_fitness_history = []
+    best_chromosomes = []
+
+    # Initialize population if needed
+    if not hasattr(ga_instance, 'population') or ga_instance.population is None:
+        population = ga_instance.initialize_population()
+    else:
+        population = ga_instance.population
+
+    # Set up the run function that will be called to make each frame
+    def run_generations(frame):
+        nonlocal ga_instance, population
+
+        # Run the algorithm for a few iterations
+        for _ in range(iterations_per_frame):
+            # Evaluate population
+            evaluated_population = [(chrom, fitness_function(chrom)) for chrom in population]
+
+            # Get best and average fitness
+            current_best = max(evaluated_population, key=lambda x: x[1])
+            avg_fitness = sum(fitness for _, fitness in evaluated_population) / len(evaluated_population)
+
+            # Store history
+            fitness_history.append(avg_fitness)
+            best_fitness_history.append(current_best[1])
+            best_chromosomes.append(current_best[0])
+
+            # Create next generation
+            parents = ga_instance.select_parents(evaluated_population)
+            offspring = ga_instance.crossover(parents)
+            population = ga_instance.mutate(offspring)
+
+        # Clear the axes for new frame
+        ax1.clear()
+        ax2.clear()
+
+        # Plot fitness history
+        generations = range(1, len(fitness_history) + 1)
+        ax1.plot(generations, fitness_history, 'b-', label='Average Fitness')
+        ax1.plot(generations, best_fitness_history, 'r-', label='Best Fitness')
+        ax1.set_title('Fitness Evolution')
+        ax1.set_xlabel('Generation')
+        ax1.set_ylabel('Fitness')
+        ax1.legend()
+        ax1.grid(True, linestyle='--', alpha=0.7)
+
+        # Visualize best chromosome as a binary grid
+        best_chromosome = best_chromosomes[-1]
+        ax2.imshow([best_chromosome], cmap='binary', aspect='auto')
+        ax2.set_title(f'Best Solution (Fitness: {best_fitness_history[-1]:.4f})')
+        ax2.set_xticks([])
+        ax2.set_yticks([])
+
+        # Add generation number
+        fig.suptitle(f'Generation {len(fitness_history)}', fontsize=16)
+
+        # Return all artists that need to be updated
+        return []
+
+    # Create the animation
+    anim = FuncAnimation(fig, run_generations, frames=max_frames,
+                         interval=200, blit=False)
+
+    plt.close(fig)  # Prevent display of the figure
+
+    return HTML(anim.to_jshtml())
+
+
+def visualize_differential_evolution(de_instance, fitness_function, bounds,
+                                     title: str = "Differential Evolution",
+                                     figsize: Tuple[int, int] = (12, 6)):
+    """
+    Visualize the optimization process of Differential Evolution for 2D problems.
+
+    Args:
+        de_instance: Instance of the DifferentialEvolution class
+        fitness_function: Function to minimize
+        bounds: List of (min, max) bounds for each variable
+        title: Plot title
+        figsize: Figure size as (width, height) tuple
+    """
+    # Check if the problem is 2D
+    if len(bounds) != 2:
+        print("This visualization only works for 2D problems (exactly 2 variables)")
+        return
+
+    # Create meshgrid for contour plot
+    x_min, x_max = bounds[0]
+    y_min, y_max = bounds[1]
+
+    x = np.linspace(x_min, x_max, 100)
+    y = np.linspace(y_min, y_max, 100)
+    X, Y = np.meshgrid(x, y)
+
+    # Calculate function values
+    Z = np.zeros_like(X)
+    for i in range(len(x)):
+        for j in range(len(y)):
+            Z[j, i] = fitness_function([X[j, i], Y[j, i]])
+
+    # Create figure
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=figsize)
+
+    # Run the DE algorithm
+    population = de_instance.initialize_population()
+    fitness_values = de_instance.evaluate_population(population)
+
+    best_fitness_history = []
+    avg_fitness_history = []
+
+    for generation in range(de_instance.max_generations):
+        # Create mutant vectors
+        mutants = de_instance.mutation(population, fitness_values)
+
+        # Create trial vectors
+        trials = de_instance.crossover(population, mutants)
+
+        # Selection
+        population, fitness_values = de_instance.selection(population, trials, fitness_values)
+
+        # Record statistics
+        best_idx = fitness_values.index(min(fitness_values))
+        best_fitness_history.append(fitness_values[best_idx])
+        avg_fitness_history.append(sum(fitness_values) / len(fitness_values))
+
+        # Plot every 10 generations or at the end
+        if generation % 10 == 0 or generation == de_instance.max_generations - 1:
+            # Clear previous plots
+            ax1.clear()
+            ax2.clear()
+
+            # Plot contour and population
+            contour = ax1.contourf(X, Y, Z, 50, cmap='viridis')
+            fig.colorbar(contour, ax=ax1)
+
+            # Extract x and y coordinates of individuals
+            x_vals = [ind[0] for ind in population]
+            y_vals = [ind[1] for ind in population]
+
+            # Plot population
+            ax1.scatter(x_vals, y_vals, color='red', marker='o')
+
+            # Highlight best individual
+            best_ind = population[best_idx]
+            ax1.scatter(best_ind[0], best_ind[1], color='white', marker='*', s=200,
+                        edgecolor='black', zorder=5)
+
+            ax1.set_title(f'Population at Generation {generation}')
+            ax1.set_xlabel('x')
+            ax1.set_ylabel('y')
+
+            # Plot fitness history
+            generations = range(1, len(best_fitness_history) + 1)
+            ax2.plot(generations, best_fitness_history, 'r-', label='Best Fitness')
+            ax2.plot(generations, avg_fitness_history, 'b-', label='Average Fitness')
+
+            ax2.set_title('Fitness Evolution')
+            ax2.set_xlabel('Generation')
+            ax2.set_ylabel('Fitness')
+            ax2.legend()
+            ax2.grid(True, linestyle='--', alpha=0.7)
+
+            fig.suptitle(f'{title} - Generation {generation}', fontsize=16)
+            plt.tight_layout()
+            plt.pause(0.1)
+
+    plt.show()
+
+
+def animate_differential_evolution(de_instance, fitness_function, bounds,
+                                   iterations_per_frame: int = 1,
+                                   max_frames: int = 100,
+                                   figsize: Tuple[int, int] = (12, 6)):
+    """
+    Create an animation for Differential Evolution optimization.
+
+    Args:
+        de_instance: Instance of the DifferentialEvolution class
+        fitness_function: Function to minimize
+        bounds: List of (min, max) bounds for each variable
+        iterations_per_frame: Number of generations to run between frames
+        max_frames: Maximum number of frames in the animation
+        figsize: Figure size as (width, height) tuple
+
+    Returns:
+        Animation HTML that can be displayed in a notebook
+    """
+    # Create figure with two subplots
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=figsize)
+
+    # Store history
+    best_fitness_history = []
+    avg_fitness_history = []
+    population_history = []
+
+    # Initialize population
+    population = de_instance.initialize_population()
+    fitness_values = de_instance.evaluate_population(population)
+
+    # If 2D problem, create contour plot
+    if len(bounds) == 2:
+        # Create meshgrid for contour plot
+        x_min, x_max = bounds[0]
+        y_min, y_max = bounds[1]
+
+        x = np.linspace(x_min, x_max, 100)
+        y = np.linspace(y_min, y_max, 100)
+        X, Y = np.meshgrid(x, y)
+
+        # Calculate function values
+        Z = np.zeros_like(X)
+        for i in range(len(x)):
+            for j in range(len(y)):
+                Z[j, i] = fitness_function([X[j, i], Y[j, i]])
+
+    # Set up the run function that will be called to make each frame
+    def run_generations(frame):
+        nonlocal de_instance, population, fitness_values
+
+        # Run the algorithm for a few iterations
+        for _ in range(iterations_per_frame):
+            # Create mutant vectors
+            mutants = de_instance.mutation(population, fitness_values)
+
+            # Create trial vectors
+            trials = de_instance.crossover(population, mutants)
+
+            # Selection
+            population, fitness_values = de_instance.selection(population, trials, fitness_values)
+
+            # Record statistics
+            best_idx = fitness_values.index(min(fitness_values))
+            best_fitness_history.append(fitness_values[best_idx])
+            avg_fitness_history.append(sum(fitness_values) / len(fitness_values))
+            population_history.append(population.copy())
+
+        # Clear the axes for new frame
+        ax1.clear()
+        ax2.clear()
+
+        # If 2D problem, plot contour and population
+        if len(bounds) == 2:
+            contour = ax1.contourf(X, Y, Z, 50, cmap='viridis')
+
+            # Extract x and y coordinates of individuals
+            x_vals = [ind[0] for ind in population]
+            y_vals = [ind[1] for ind in population]
+
+            # Plot population
+            ax1.scatter(x_vals, y_vals, color='red', marker='o')
+
+            # Highlight best individual
+            best_idx = fitness_values.index(min(fitness_values))
+            best_ind = population[best_idx]
+            ax1.scatter(best_ind[0], best_ind[1], color='white', marker='*', s=200,
+                        edgecolor='black', zorder=5)
+
+            ax1.set_title('Current Population')
+            ax1.set_xlabel('x')
+            ax1.set_ylabel('y')
+            ax1.set_xlim(x_min, x_max)
+            ax1.set_ylim(y_min, y_max)
+        else:
+            # For higher dimensions, show best solution values
+            best_idx = fitness_values.index(min(fitness_values))
+            best_ind = population[best_idx]
+
+            ax1.axis('off')
+            ax1.text(0.5, 0.5, f"Best Solution:\n{best_ind}\n\nFitness: {fitness_values[best_idx]:.6f}",
+                     ha='center', va='center', fontsize=12)
+            ax1.set_title('Current Best Solution')
+
+        # Plot fitness history
+        generations = range(1, len(best_fitness_history) + 1)
+        ax2.plot(generations, best_fitness_history, 'r-', label='Best Fitness')
+        ax2.plot(generations, avg_fitness_history, 'b-', label='Average Fitness')
+
+        ax2.set_title('Fitness Evolution')
+        ax2.set_xlabel('Generation')
+        ax2.set_ylabel('Fitness')
+        ax2.legend()
+        ax2.grid(True, linestyle='--', alpha=0.7)
+
+        # Add generation number
+        fig.suptitle(f'Generation {len(best_fitness_history)}', fontsize=16)
+
+        # Return all artists that need to be updated
+        return []
+
+    # Create the animation
+    anim = FuncAnimation(fig, run_generations, frames=max_frames,
+                         interval=200, blit=False)
+
+    plt.tight_layout()
+    plt.close(fig)  # Prevent display of the figure
 
     return HTML(anim.to_jshtml())
