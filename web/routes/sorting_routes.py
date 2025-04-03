@@ -42,6 +42,10 @@ def run_sorting():
     if not algorithm:
         return jsonify({'error': 'Algorithm not found'}), 404
 
+    # Ensure input_array is valid
+    if not isinstance(input_array, list) or len(input_array) == 0:
+        input_array = [5, 3, 8, 1, 2, 9]  # Default array if invalid input
+
     # Measure execution time
     result, execution_time = measure_execution_time(algorithm, input_array.copy())
 
@@ -211,6 +215,11 @@ def merge(left, right):
 
 def generate_sorting_frames(algorithm_name, input_array):
     """Generate visualization frames for sorting algorithms directly"""
+    if not input_array:
+        # Handle empty array case
+        return [
+            {'state': [], 'info': 'Empty array', 'highlight': []}
+        ]
 
     if algorithm_name == 'bubble_sort':
         return generate_bubble_sort_frames(input_array)
@@ -236,6 +245,10 @@ def generate_bubble_sort_frames(arr):
     array = arr.copy()
     n = len(array)
 
+    # Handle empty array case
+    if n == 0:
+        return [{'state': [], 'info': 'Empty array', 'highlight': []}]
+
     # Initial state
     frames.append({
         'state': array.copy(),
@@ -247,6 +260,10 @@ def generate_bubble_sort_frames(arr):
         swapped = False
 
         for j in range(0, n - i - 1):
+            # Ensure indices are valid
+            if j + 1 >= n:
+                continue
+
             # Comparing elements
             frames.append({
                 'state': array.copy(),
@@ -265,12 +282,13 @@ def generate_bubble_sort_frames(arr):
                     'highlight': [j, j + 1]
                 })
 
-        # Mark the last element as sorted
-        frames.append({
-            'state': array.copy(),
-            'info': f'Element {array[n - i - 1]} is now in correct position',
-            'highlight': [n - i - 1]
-        })
+        # Ensure index is valid before accessing array
+        if n - i - 1 >= 0 and n - i - 1 < n:
+            frames.append({
+                'state': array.copy(),
+                'info': f'Element {array[n - i - 1]} is now in correct position',
+                'highlight': [n - i - 1]
+            })
 
         # If no swapping occurred in this pass, array is sorted
         if not swapped:
@@ -288,7 +306,7 @@ def generate_bubble_sort_frames(arr):
 
 def quick_sort_with_frames(arr, low, high, frames):
     """Quick sort implementation that records frames for visualization"""
-    if low < high:
+    if low < high and low >= 0 and high < len(arr):
         # Record current state
         current_array = arr.copy()
         frames.append({
@@ -302,21 +320,27 @@ def quick_sort_with_frames(arr, low, high, frames):
 
         # Record the state after partitioning
         current_array = arr.copy()
-        frames.append({
-            'state': current_array,
-            'info': f'Pivot {arr[pivot_index]} is now at correct position {pivot_index}',
-            'highlight': [pivot_index]
-        })
 
-        # Recursively sort the sub-arrays
-        quick_sort_with_frames(arr, low, pivot_index - 1, frames)
-        quick_sort_with_frames(arr, pivot_index + 1, high, frames)
+        # Ensure pivot_index is valid
+        if 0 <= pivot_index < len(arr):
+            frames.append({
+                'state': current_array,
+                'info': f'Pivot {arr[pivot_index]} is now at correct position {pivot_index}',
+                'highlight': [pivot_index]
+            })
+
+            # Recursively sort the sub-arrays
+            quick_sort_with_frames(arr, low, pivot_index - 1, frames)
+            quick_sort_with_frames(arr, pivot_index + 1, high, frames)
 
     return arr
 
 
 def partition(arr, low, high, frames):
     """Partition function for quick sort that records visualization frames"""
+    if low >= len(arr) or high >= len(arr) or low < 0 or high < 0:
+        return -1  # Return an invalid index to indicate error
+
     pivot = arr[high]
     frames.append({
         'state': arr.copy(),
@@ -327,6 +351,10 @@ def partition(arr, low, high, frames):
     i = low - 1
 
     for j in range(low, high):
+        # Ensure indices are valid
+        if j >= len(arr):
+            continue
+
         # Compare current element with pivot
         frames.append({
             'state': arr.copy(),
@@ -337,6 +365,11 @@ def partition(arr, low, high, frames):
         if arr[j] <= pivot:
             # Increment index of smaller element
             i += 1
+
+            # Ensure i is valid
+            if i >= len(arr):
+                continue
+
             arr[i], arr[j] = arr[j], arr[i]
 
             if i != j:
@@ -347,14 +380,15 @@ def partition(arr, low, high, frames):
                 })
 
     # Place the pivot in its correct position
-    arr[i + 1], arr[high] = arr[high], arr[i + 1]
+    if i + 1 < len(arr) and high < len(arr):
+        arr[i + 1], arr[high] = arr[high], arr[i + 1]
 
-    if i + 1 != high:
-        frames.append({
-            'state': arr.copy(),
-            'info': f'Placed pivot {pivot} at position {i + 1}',
-            'highlight': [i + 1, high]
-        })
+        if i + 1 != high:
+            frames.append({
+                'state': arr.copy(),
+                'info': f'Placed pivot {pivot} at position {i + 1}',
+                'highlight': [i + 1, high]
+            })
 
     return i + 1
 
@@ -373,7 +407,7 @@ def merge_sort_with_frames(arr, frames):
 
 
 def _merge_sort_impl(arr, start, end, frames):
-    if start < end:
+    if start < end and start >= 0 and end < len(arr):
         # Find the middle point
         mid = (start + end) // 2
 
@@ -395,6 +429,10 @@ def _merge_sort_impl(arr, start, end, frames):
 
 
 def _merge(arr, start, mid, end, frames):
+    # Validate indices
+    if start < 0 or mid < 0 or end < 0 or start >= len(arr) or mid >= len(arr) or end >= len(arr):
+        return
+
     # Create temporary arrays
     L = arr[start:mid + 1]
     R = arr[mid + 1:end + 1]
@@ -424,11 +462,12 @@ def _merge(arr, start, mid, end, frames):
         k += 1
 
         # Record each comparison and placement
-        frames.append({
-            'state': arr.copy(),
-            'info': f'Placing element at position {k - 1}',
-            'highlight': [k - 1]
-        })
+        if k - 1 < len(arr):
+            frames.append({
+                'state': arr.copy(),
+                'info': f'Placing element at position {k - 1}',
+                'highlight': [k - 1]
+            })
 
     # Copy the remaining elements of L, if any
     while i < len(L):
@@ -436,11 +475,12 @@ def _merge(arr, start, mid, end, frames):
         i += 1
         k += 1
 
-        frames.append({
-            'state': arr.copy(),
-            'info': f'Copying remaining elements from left subarray to position {k - 1}',
-            'highlight': [k - 1]
-        })
+        if k - 1 < len(arr):
+            frames.append({
+                'state': arr.copy(),
+                'info': f'Copying remaining elements from left subarray to position {k - 1}',
+                'highlight': [k - 1]
+            })
 
     # Copy the remaining elements of R, if any
     while j < len(R):
@@ -448,11 +488,12 @@ def _merge(arr, start, mid, end, frames):
         j += 1
         k += 1
 
-        frames.append({
-            'state': arr.copy(),
-            'info': f'Copying remaining elements from right subarray to position {k - 1}',
-            'highlight': [k - 1]
-        })
+        if k - 1 < len(arr):
+            frames.append({
+                'state': arr.copy(),
+                'info': f'Copying remaining elements from right subarray to position {k - 1}',
+                'highlight': [k - 1]
+            })
 
     # Record the sorted subarray
     frames.append({

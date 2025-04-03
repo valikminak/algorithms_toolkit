@@ -1,5 +1,3 @@
-# sorting/__init__.py
-
 from kosmos.sorting.comparison import (
     quick_sort, merge_sort, heap_sort, insertion_sort, selection_sort,
     bubble_sort, shell_sort, tim_sort, intro_sort

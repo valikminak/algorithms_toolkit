@@ -58,7 +58,7 @@ export function initVisualization() {
 export function renderVisualization(data, speed) {
     clearVisualization();
 
-    if (!data || !data.visualization) {
+    if (!data || !data.visualization || !Array.isArray(data.visualization) || data.visualization.length === 0) {
         showPlaceholder('No visualization data available');
         return;
     }
@@ -172,13 +172,20 @@ export function clearVisualization() {
 
 // Determine the category based on data content
 function determineCategory(data) {
-    if (data.algorithm && data.algorithm.includes('sort')) {
-        return 'sorting';
-    } else if (data.algorithm && data.algorithm.includes('search')) {
-        return 'searching';
-    } else if (data.graph || (frames.length > 0 && (frames[0].nodes || frames[0].edges))) {
+    if (!data) return 'generic';
+
+    if (data.algorithm && typeof data.algorithm === 'string') {
+        if (data.algorithm.includes('sort')) {
+            return 'sorting';
+        } else if (data.algorithm.includes('search')) {
+            return 'searching';
+        }
+    }
+
+    if (data.graph || (frames.length > 0 && (frames[0].nodes || frames[0].edges || frames[0].visited))) {
         return 'graph';
     }
+
     return 'generic';
 }
 
@@ -215,6 +222,11 @@ function renderCurrentFrame(renderFunction) {
 
     const frame = frames[currentFrame];
 
+    if (!frame) {
+        console.error('Invalid frame at index', currentFrame);
+        return;
+    }
+
     // Clear canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -227,10 +239,32 @@ function renderCurrentFrame(renderFunction) {
 
 // Render a sorting algorithm frame
 function renderSortingFrame(ctx, frame, width, height) {
-    if (!frame.state) return;
+    if (!frame || !frame.state) {
+        ctx.fillStyle = '#f5f7fa';
+        ctx.fillRect(0, 0, width, height);
+        ctx.fillStyle = '#666';
+        ctx.font = '16px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('No frame data available', width / 2, height / 2);
+        return;
+    }
 
     const array = Array.isArray(frame.state) ? frame.state : [];
-    const maxValue = Math.max(...array, 1); // Avoid division by zero
+
+    // No data to display
+    if (array.length === 0) {
+        ctx.fillStyle = '#f5f7fa';
+        ctx.fillRect(0, 0, width, height);
+        ctx.fillStyle = '#666';
+        ctx.font = '16px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('Empty array', width / 2, height / 2);
+        return;
+    }
+
+    // Find max value safely
+    const maxValue = Math.max(...array.map(v => isNaN(v) ? 0 : v), 1);
+
     const barWidth = width / array.length;
     const barSpacing = Math.min(barWidth * 0.2, 4); // Space between bars, max 4px
 
@@ -286,10 +320,32 @@ function renderSortingFrame(ctx, frame, width, height) {
 
 // Render a searching algorithm frame
 function renderSearchingFrame(ctx, frame, width, height) {
-    if (!frame.state) return;
+    if (!frame || !frame.state) {
+        ctx.fillStyle = '#f5f7fa';
+        ctx.fillRect(0, 0, width, height);
+        ctx.fillStyle = '#666';
+        ctx.font = '16px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('No frame data available', width / 2, height / 2);
+        return;
+    }
 
     const array = Array.isArray(frame.state) ? frame.state : [];
-    const maxValue = Math.max(...array, 1); // Avoid division by zero
+
+    // No data to display
+    if (array.length === 0) {
+        ctx.fillStyle = '#f5f7fa';
+        ctx.fillRect(0, 0, width, height);
+        ctx.fillStyle = '#666';
+        ctx.font = '16px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('Empty array', width / 2, height / 2);
+        return;
+    }
+
+    // Find max value safely
+    const maxValue = Math.max(...array.map(v => isNaN(v) ? 0 : v), 1);
+
     const barWidth = width / array.length;
     const barSpacing = Math.min(barWidth * 0.2, 4);
 
@@ -518,7 +574,7 @@ function updateProgressBar(percentage) {
 function updateInfoText(text) {
     const infoText = document.getElementById('info-text');
     if (infoText) {
-        infoText.textContent = text;
+        infoText.textContent = text || '';
     }
 }
 

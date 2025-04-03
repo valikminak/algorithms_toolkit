@@ -39,6 +39,10 @@ def run_searching():
     input_array = data.get('input', [1, 2, 3, 5, 8, 13, 21, 34, 55, 89])
     target = data.get('target', 21)  # Default to searching for 21
 
+    # Validate input
+    if not isinstance(input_array, list) or len(input_array) == 0:
+        input_array = [1, 2, 3, 5, 8, 13, 21, 34, 55, 89]  # Default array if invalid input
+
     # Make sure input is sorted for binary search
     if algorithm_name == 'binary_search':
         input_array = sorted(input_array)
@@ -77,6 +81,10 @@ def compare_searching():
     algorithm_names = data.get('algorithms', ['binary_search', 'linear_search'])
     input_array = data.get('input', [1, 2, 3, 5, 8, 13, 21, 34, 55, 89])
     target = data.get('target', 21)  # Default to searching for 21
+
+    # Validate input
+    if not isinstance(input_array, list) or len(input_array) == 0:
+        input_array = [1, 2, 3, 5, 8, 13, 21, 34, 55, 89]  # Default array if invalid input
 
     # Make sure input is sorted for binary search
     input_array = sorted(input_array)
@@ -187,6 +195,10 @@ def generate_search_frames(algorithm_name, input_array, target, result):
     """Generate visualization frames for search algorithms directly"""
     frames = []
 
+    # Handle empty array case
+    if not input_array:
+        return [{'state': [], 'target': target, 'info': 'Empty array', 'highlight': []}]
+
     if algorithm_name == 'binary_search':
         # Generate binary search frames
         left, right = 0, len(input_array) - 1
@@ -201,52 +213,60 @@ def generate_search_frames(algorithm_name, input_array, target, result):
         })
 
         # Search steps
-        while left <= right:
+        while left <= right and left >= 0 and right < len(input_array):
             mid = (left + right) // 2
-            frames.append({
-                'state': input_array,
-                'target': target,
-                'highlight': [mid],
-                'range': {'left': left, 'right': right},
-                'info': f'Comparing {input_array[mid]} with target {target} at index {mid}'
-            })
 
-            if input_array[mid] == target:
+            # Ensure mid is valid
+            if 0 <= mid < len(input_array):
                 frames.append({
                     'state': input_array,
                     'target': target,
                     'highlight': [mid],
                     'range': {'left': left, 'right': right},
-                    'info': f'Found target {target} at index {mid}!'
+                    'info': f'Comparing {input_array[mid]} with target {target} at index {mid}'
                 })
+
+                if input_array[mid] == target:
+                    frames.append({
+                        'state': input_array,
+                        'target': target,
+                        'highlight': [mid],
+                        'range': {'left': left, 'right': right},
+                        'info': f'Found target {target} at index {mid}!'
+                    })
+                    break
+
+                if input_array[mid] < target:
+                    left = mid + 1
+                    frames.append({
+                        'state': input_array,
+                        'target': target,
+                        'highlight': [],
+                        'range': {'left': left, 'right': right},
+                        'info': f'{input_array[mid]} < {target}, searching right half: [{left}...{right}]'
+                    })
+                else:
+                    right = mid - 1
+                    frames.append({
+                        'state': input_array,
+                        'target': target,
+                        'highlight': [],
+                        'range': {'left': left, 'right': right},
+                        'info': f'{input_array[mid]} > {target}, searching left half: [{left}...{right}]'
+                    })
+            else:
+                # Handle invalid mid index
                 break
 
-            if input_array[mid] < target:
-                left = mid + 1
-                frames.append({
-                    'state': input_array,
-                    'target': target,
-                    'highlight': [],
-                    'range': {'left': left, 'right': right},
-                    'info': f'{input_array[mid]} < {target}, searching right half: [{left}...{right}]'
-                })
-            else:
-                right = mid - 1
-                frames.append({
-                    'state': input_array,
-                    'target': target,
-                    'highlight': [],
-                    'range': {'left': left, 'right': right},
-                    'info': f'{input_array[mid]} > {target}, searching left half: [{left}...{right}]'
-                })
-
         # Not found case
-        if left > right and (not frames or "Found target" not in frames[-1]['info']):
+        if (left > right or left < 0 or right >= len(input_array)) and (
+                not frames or "Found target" not in frames[-1].get('info', '')):
             frames.append({
                 'state': input_array,
                 'target': target,
                 'highlight': [],
-                'range': {'left': left, 'right': right},
+                'range': {'left': max(0, min(left, len(input_array) - 1)),
+                          'right': max(0, min(right, len(input_array) - 1))},
                 'info': f'Target {target} not found in the array'
             })
 
