@@ -5,11 +5,13 @@ matplotlib.use('Agg')  # Use non-interactive backend
 import matplotlib.pyplot as plt
 from collections import deque
 import heapq
+import traceback
 
 # Import graph algorithms and utils
-from kosmos.graph import Graph
+from kosmos.graph.base import Graph
 from kosmos.graph.traversal import breadth_first_search, depth_first_search
-from kosmos.graph import dijkstra
+from kosmos.graph.shortest_path import dijkstra, a_star_search
+from kosmos.graph.mst import kruskal_mst, prim_mst
 from utils.performance import benchmark, measure_execution_time
 from utils.matplotlib_adapter import convert_plot_to_image
 
@@ -129,61 +131,82 @@ def run_graph_algorithm():
     source = data.get('source', 'A')
     target = data.get('target', 'E')
 
-    # Create a graph from the input data
-    graph = create_graph_from_data(graph_data)
-
-    # Map algorithm names to functions
-    algorithms = {
-        'bfs': breadth_first_search,
-        'dfs': depth_first_search,
-        'dijkstra': dijkstra
-        # Other algorithms are defined locally below
-    }
-
-    # Generate visualization frames based on algorithm
-    frames = []
-    result = None
-    execution_time = 0
-
     try:
-        if algorithm_name in algorithms:
-            if algorithm_name in ['bfs', 'dfs']:
-                # Use the imported algorithm
-                result, execution_time = measure_execution_time(algorithms[algorithm_name], graph, source)
-                # Generate frames
-                frames = generate_traversal_frames(algorithm_name, graph, source, target)
-            elif algorithm_name == 'dijkstra':
-                # Use the imported algorithm
-                result, execution_time = measure_execution_time(algorithms[algorithm_name], graph, source, target)
-                # Generate frames
-                frames = generate_dijkstra_frames(graph, source, target)
+        # Create a graph from the input data
+        graph = create_graph_from_data(graph_data)
+
+        # Map algorithm names to functions
+        algorithms = {
+            'bfs': breadth_first_search,
+            'dfs': depth_first_search,
+            'dijkstra': dijkstra,
+            'astar': a_star_search,
+            'prim': prim_mst,
+            'kruskal': kruskal_mst
+        }
+
+        # Check if the selected algorithm exists
+        if algorithm_name not in algorithms:
+            return jsonify({'error': 'Algorithm not found'}), 404
+
+        # Generate visualization frames based on algorithm
+        frames = []
+        result = None
+        execution_time = 0
+
+        # Call the appropriate algorithm
+        if algorithm_name in ['bfs', 'dfs']:
+            # Use the imported algorithm
+            result, execution_time = measure_execution_time(algorithms[algorithm_name], graph, source)
+            # Generate frames
+            frames = generate_traversal_frames(algorithm_name, graph, source, target)
+        elif algorithm_name == 'dijkstra':
+            # Use the imported algorithm
+            result, execution_time = measure_execution_time(algorithms[algorithm_name], graph, source, target)
+            # Generate frames
+            frames = generate_dijkstra_frames(graph, source, target)
         elif algorithm_name == 'astar':
-            # A* is implemented locally
-            result, execution_time = measure_execution_time(astar_search, graph, source, target)
+            # A* search algorithm
+            result, execution_time = measure_execution_time(algorithms[algorithm_name], graph, source, target,
+                                                            heuristic=lambda a, b: 0)
             frames = generate_astar_frames(graph, source, target)
         elif algorithm_name == 'prim':
-            result, execution_time = measure_execution_time(prim_mst, graph)
+            # Prim's MST algorithm
+            result, execution_time = measure_execution_time(algorithms[algorithm_name], graph)
             frames = generate_prim_frames(graph)
         elif algorithm_name == 'kruskal':
-            result, execution_time = measure_execution_time(kruskal_mst, graph)
+            # Kruskal's MST algorithm
+            result, execution_time = measure_execution_time(algorithms[algorithm_name], graph)
             frames = generate_kruskal_frames(graph)
-        else:
-            return jsonify({'error': 'Algorithm not found'}), 404
+
+        # Format the result based on the algorithm
+        formatted_result = format_graph_result(algorithm_name, result, source, target)
+
+        # Prepare edges dictionary for JSON
+        edges_dict = {}
+        for u, v in graph.edges:
+            edges_dict[f"{u},{v}"] = graph.get_edge_weight(u, v)
+
+        # Convert graph data to a format suitable for visualization
+        prepared_graph = {
+            'vertices': list(graph.vertices),
+            'edges': edges_dict,
+            'directed': graph.directed,
+            'weighted': graph.weighted
+        }
+
+        return jsonify({
+            'algorithm': algorithm_name,
+            'result': formatted_result,
+            'execution_time': execution_time,
+            'visualization': frames,
+            'graph': prepared_graph,
+            'category': 'graph'
+        })
     except Exception as e:
         print(f"Error running algorithm: {e}")
+        print(traceback.format_exc())  # Print full traceback for debugging
         return jsonify({'error': f'Error running algorithm: {str(e)}'}), 500
-
-    # Format the result based on the algorithm
-    formatted_result = format_graph_result(algorithm_name, result, source, target)
-
-    return jsonify({
-        'algorithm': algorithm_name,
-        'result': formatted_result,
-        'execution_time': execution_time,
-        'visualization': frames,
-        'graph': graph_data,
-        'category': 'graph'
-    })
 
 
 @graph_bp.route('/compare', methods=['POST'])
@@ -215,7 +238,7 @@ def compare_graph_algorithms():
         'bfs': breadth_first_search,
         'dfs': depth_first_search,
         'dijkstra': dijkstra,
-        'astar': astar_search,
+        'astar': a_star_search,
         'prim': prim_mst,
         'kruskal': kruskal_mst
     }
@@ -238,6 +261,8 @@ def compare_graph_algorithms():
             if algo_name in ['bfs', 'dfs']:
                 return func(g, source)
             elif algo_name in ['dijkstra', 'astar']:
+                if algo_name == 'astar':
+                    return func(g, source, target, heuristic=lambda a, b: 0)
                 return func(g, source, target)
             else:
                 return func(g)
@@ -365,7 +390,8 @@ def dijkstra(graph, start_vertex, end_vertex=None):
             break
 
         # Process neighbors
-        for neighbor, weight in graph.get_neighbors_with_weights(current_vertex).items():
+        for neighbor in graph.get_neighbors(current_vertex):
+            weight = graph.get_edge_weight(current_vertex, neighbor)
             distance = current_distance + weight
 
             # If we found a better path
@@ -377,7 +403,7 @@ def dijkstra(graph, start_vertex, end_vertex=None):
     return distances, predecessors
 ''',
         'astar': '''
-def astar_search(graph, start_vertex, end_vertex):
+def a_star_search(graph, start_vertex, end_vertex, heuristic=None):
     """
     A* search algorithm for finding shortest path.
 
@@ -385,58 +411,62 @@ def astar_search(graph, start_vertex, end_vertex):
         graph: The weighted graph
         start_vertex: Starting vertex
         end_vertex: Target vertex
+        heuristic: A function that takes two vertices and returns an estimated distance
 
     Returns:
-        Tuple of (path, cost)
+        Tuple of (distances, predecessors)
     """
     import heapq
 
-    # Heuristic function (estimate of remaining distance)
-    def heuristic(vertex):
-        # For demonstration, using a simple heuristic (could be improved with coordinates)
-        return 0
+    # Default heuristic (no estimate)
+    if heuristic is None:
+        heuristic = lambda a, b: 0
 
-    # Open set (vertices to explore)
-    open_set = [(0 + heuristic(start_vertex), 0, start_vertex, [])]
+    # Initialize distances and predecessors
+    distances = {vertex: float('infinity') for vertex in graph.vertices}
+    distances[start_vertex] = 0
+    predecessors = {vertex: None for vertex in graph.vertices}
 
-    # Closed set (vertices already explored)
-    closed_set = set()
+    # Priority queue: (f_score, g_score, vertex)
+    # f_score = g_score + heuristic
+    pq = [(heuristic(start_vertex, end_vertex), 0, start_vertex)]
 
-    while open_set:
-        # Get the vertex with lowest f_score (f = g + h)
-        f_score, g_score, current, path = heapq.heappop(open_set)
+    # Visited set
+    visited = set()
 
-        # If we've reached the goal
-        if current == end_vertex:
-            path = path + [current]
-            return path, g_score
+    while pq:
+        _, current_distance, current_vertex = heapq.heappop(pq)
 
-        # If we've already explored this vertex
-        if current in closed_set:
+        # If we've already visited this vertex, skip
+        if current_vertex in visited:
             continue
 
-        # Add current to closed set
-        closed_set.add(current)
+        # Mark as visited
+        visited.add(current_vertex)
 
-        # Update path
-        path = path + [current]
+        # If we've reached the goal, we're done
+        if current_vertex == end_vertex:
+            break
 
-        # Explore neighbors
-        for neighbor, weight in graph.get_neighbors_with_weights(current).items():
-            if neighbor in closed_set:
+        # Process neighbors
+        for neighbor in graph.get_neighbors(current_vertex):
+            # Skip if already visited
+            if neighbor in visited:
                 continue
 
-            # Calculate tentative g_score
-            tentative_g = g_score + weight
+            weight = graph.get_edge_weight(current_vertex, neighbor)
+            distance = current_distance + weight
 
-            # Calculate f_score (g + heuristic)
-            f = tentative_g + heuristic(neighbor)
+            # If we found a better path
+            if distance < distances[neighbor]:
+                distances[neighbor] = distance
+                predecessors[neighbor] = current_vertex
 
-            # Add to open set
-            heapq.heappush(open_set, (f, tentative_g, neighbor, path))
+                # Calculate f_score = g_score + heuristic
+                f_score = distance + heuristic(neighbor, end_vertex)
+                heapq.heappush(pq, (f_score, distance, neighbor))
 
-    # No path found
-    return [], float('infinity')
+    return distances, predecessors
 ''',
         'prim': '''
 def prim_mst(graph):
@@ -465,7 +495,8 @@ def prim_mst(graph):
     edges = []
 
     # Add all edges from start vertex
-    for neighbor, weight in graph.get_neighbors_with_weights(start).items():
+    for neighbor in graph.get_neighbors(start):
+        weight = graph.get_edge_weight(start, neighbor)
         heapq.heappush(edges, (weight, start, neighbor))
 
     # Grow the MST
@@ -482,9 +513,10 @@ def prim_mst(graph):
         visited.add(v)
 
         # Add edges from v to unvisited vertices
-        for neighbor, w in graph.get_neighbors_with_weights(v).items():
+        for neighbor in graph.get_neighbors(v):
             if neighbor not in visited:
-                heapq.heappush(edges, (w, v, neighbor))
+                weight = graph.get_edge_weight(v, neighbor)
+                heapq.heappush(edges, (weight, v, neighbor))
 
     return mst
 ''',
@@ -499,48 +531,36 @@ def kruskal_mst(graph):
     Returns:
         Set of edges in the MST
     """
-    # Union-Find data structure
-    parent = {v: v for v in graph.vertices}
-    rank = {v: 0 for v in graph.vertices}
+    from kosmos.graph.base import DisjointSet
 
-    def find(v):
-        if parent[v] != v:
-            parent[v] = find(parent[v])
-        return parent[v]
-
-    def union(v1, v2):
-        root1 = find(v1)
-        root2 = find(v2)
-
-        if root1 != root2:
-            if rank[root1] > rank[root2]:
-                parent[root2] = root1
-            else:
-                parent[root1] = root2
-                if rank[root1] == rank[root2]:
-                    rank[root2] += 1
+    # Initialize disjoint set
+    ds = DisjointSet()
+    for vertex in graph.vertices:
+        ds.make_set(vertex)
 
     # Get all edges and sort by weight
     edges = []
-    for (v1, v2), weight in graph.edges.items():
-        edges.append((weight, v1, v2))
+    for u, v in graph.edges:
+        weight = graph.get_edge_weight(u, v)
+        edges.append((weight, u, v))
 
+    # Sort edges by weight
     edges.sort()
 
     # MST edges
-    mst_edges = set()
+    mst = []
 
     # Process edges in order of weight
-    for weight, v1, v2 in edges:
-        if find(v1) != find(v2):
-            union(v1, v2)
-            mst_edges.add((v1, v2, weight))
+    for weight, u, v in edges:
+        if not ds.connected(u, v):
+            ds.union(u, v)
+            mst.append((u, v, weight))
 
             # Stop when we have |V|-1 edges
-            if len(mst_edges) == len(graph.vertices) - 1:
+            if len(mst) == len(graph.vertices) - 1:
                 break
 
-    return mst_edges
+    return mst
 '''
     }
 
@@ -556,7 +576,8 @@ def create_graph_from_data(graph_data):
                       weighted=graph_data.get('weighted', False))
 
         # Add vertices
-        for vertex in graph_data.get('vertices', []):
+        vertices = graph_data.get('vertices', [])
+        for vertex in vertices:
             if vertex is not None:  # Skip None vertices
                 graph.add_vertex(vertex)
 
@@ -575,8 +596,8 @@ def create_graph_from_data(graph_data):
 
         return graph
     except Exception as e:
-        # If anything goes wrong, return a minimal valid graph
         print(f"Error creating graph: {e}")
+        print(traceback.format_exc())  # Print full traceback for debugging
         return Graph()
 
 
@@ -587,37 +608,36 @@ def format_graph_result(algorithm_name, result, source, target):
             'visited': list(result.keys()) if result else [],
             'starting_vertex': source
         }
-    elif algorithm_name == 'dijkstra' or algorithm_name == 'astar':
-        if algorithm_name == 'dijkstra':
-            if not result:
-                return {'distances': {}, 'path': [], 'path_length': None}
+    elif algorithm_name in ['dijkstra', 'astar']:
+        if not result:
+            return {'distances': {}, 'path': [], 'path_length': None}
 
-            distances, predecessors = result
+        distances, predecessors = result
 
-            # Reconstruct path if target was provided
-            path = []
-            if target in predecessors:
-                current = target
-                while current:
-                    path.append(current)
-                    current = predecessors[current]
-                path.reverse()
+        # Convert infinity values to strings for JSON serialization
+        serializable_distances = {}
+        for k, v in distances.items():
+            if v == float('infinity'):
+                serializable_distances[k] = "infinity"
+            else:
+                serializable_distances[k] = v
 
-            return {
-                'distances': {k: v if v != float('infinity') else "infinity" for k, v in distances.items()},
-                'path': path,
-                'path_length': distances[target] if target in distances else None
-            }
-        else:
-            if not result:
-                return {'path': [], 'path_length': None}
+        # Reconstruct path if target was provided
+        path = []
+        if target in predecessors:
+            current = target
+            while current:
+                path.append(current)
+                current = predecessors[current]
+            path.reverse()
 
-            path, cost = result
-            return {
-                'path': path,
-                'path_length': cost
-            }
-    elif algorithm_name == 'prim' or algorithm_name == 'kruskal':
+        return {
+            'distances': serializable_distances,
+            'path': path,
+            'path_length': distances.get(target, float('infinity'))
+            if distances.get(target, float('infinity')) != float('infinity') else None
+        }
+    elif algorithm_name in ['prim', 'kruskal']:
         if not result:
             return {'mst_edges': [], 'total_weight': 0}
 
@@ -863,13 +883,17 @@ def generate_dijkstra_frames(graph, start_vertex, end_vertex):
     # Track visited nodes
     visited = set()
 
+    # Serializable distances for frames
+    def get_serializable_distances(dist_dict):
+        return {k: "infinity" if v == float('infinity') else v for k, v in dist_dict.items()}
+
     # Initial frame
     frames.append({
         'info': f'Starting Dijkstra\'s algorithm from {start_vertex}',
         'visited': [],
         'current': None,
         'queue': [start_vertex],
-        'distances': {k: 'infinity' if v == float('infinity') else v for k, v in distances.items()},
+        'distances': get_serializable_distances(distances),
         'start': start_vertex,
         'end': end_vertex
     })
@@ -878,7 +902,7 @@ def generate_dijkstra_frames(graph, start_vertex, end_vertex):
         dist, vertex = heapq.heappop(pq)
 
         # Skip if we've found a better path already
-        if dist > distances.get(vertex, float('infinity')):
+        if dist > distances.get(vertex, float('infinity')) or vertex in visited:
             continue
 
         # Skip invalid vertices
@@ -893,7 +917,7 @@ def generate_dijkstra_frames(graph, start_vertex, end_vertex):
             'visited': list(visited),
             'current': vertex,
             'queue': [v for _, v in pq],
-            'distances': {k: 'infinity' if v == float('infinity') else v for k, v in distances.items()},
+            'distances': get_serializable_distances(distances),
             'start': start_vertex,
             'end': end_vertex
         })
@@ -905,7 +929,7 @@ def generate_dijkstra_frames(graph, start_vertex, end_vertex):
                 'visited': list(visited),
                 'current': vertex,
                 'queue': [v for _, v in pq],
-                'distances': {k: 'infinity' if v == float('infinity') else v for k, v in distances.items()},
+                'distances': get_serializable_distances(distances),
                 'start': start_vertex,
                 'end': end_vertex
             })
@@ -913,19 +937,11 @@ def generate_dijkstra_frames(graph, start_vertex, end_vertex):
 
         # Process neighbors
         try:
-            # Handle potential errors in get_neighbors_with_weights
-            if hasattr(graph, 'get_neighbors_with_weights'):
-                neighbors_with_weights = graph.get_neighbors_with_weights(vertex)
-            else:
-                neighbors_with_weights = {}
-                for neighbor in graph.get_neighbors(vertex):
-                    weight = graph.get_edge_weight(vertex, neighbor) if hasattr(graph, 'get_edge_weight') else 1
-                    neighbors_with_weights[neighbor] = weight
-
-            for neighbor, weight in neighbors_with_weights.items():
+            for neighbor in graph.get_neighbors(vertex):
                 if neighbor in visited:
                     continue
 
+                weight = graph.get_edge_weight(vertex, neighbor)
                 new_dist = distances[vertex] + weight
 
                 # Add this edge to consideration
@@ -934,7 +950,7 @@ def generate_dijkstra_frames(graph, start_vertex, end_vertex):
                     'visited': list(visited),
                     'current': vertex,
                     'queue': [v for _, v in pq],
-                    'distances': {k: 'infinity' if v == float('infinity') else v for k, v in distances.items()},
+                    'distances': get_serializable_distances(distances),
                     'consideredEdges': [f'{vertex},{neighbor}'],
                     'start': start_vertex,
                     'end': end_vertex
@@ -950,7 +966,7 @@ def generate_dijkstra_frames(graph, start_vertex, end_vertex):
                         'visited': list(visited),
                         'current': vertex,
                         'queue': [v for _, v in pq],
-                        'distances': {k: 'infinity' if v == float('infinity') else v for k, v in distances.items()},
+                        'distances': get_serializable_distances(distances),
                         'start': start_vertex,
                         'end': end_vertex
                     })
@@ -961,7 +977,7 @@ def generate_dijkstra_frames(graph, start_vertex, end_vertex):
                 'visited': list(visited),
                 'current': vertex,
                 'queue': [v for _, v in pq],
-                'distances': {k: 'infinity' if v == float('infinity') else v for k, v in distances.items()},
+                'distances': get_serializable_distances(distances),
                 'start': start_vertex,
                 'end': end_vertex
             })
@@ -985,7 +1001,7 @@ def generate_dijkstra_frames(graph, start_vertex, end_vertex):
             'visited': list(visited),
             'current': None,
             'queue': [],
-            'distances': {k: 'infinity' if v == float('infinity') else v for k, v in distances.items()},
+            'distances': get_serializable_distances(distances),
             'path': path,
             'pathEdges': path_edges,
             'start': start_vertex,
@@ -997,7 +1013,7 @@ def generate_dijkstra_frames(graph, start_vertex, end_vertex):
             'visited': list(visited),
             'current': None,
             'queue': [],
-            'distances': {k: 'infinity' if v == float('infinity') else v for k, v in distances.items()},
+            'distances': get_serializable_distances(distances),
             'start': start_vertex,
             'end': end_vertex
         })
@@ -1023,19 +1039,31 @@ def generate_astar_frames(graph, start_vertex, end_vertex):
         return [{'info': 'No valid target vertex found', 'visited': [], 'current': None, 'queue': []}]
 
     # Simple heuristic function (in reality, you'd use coordinates)
-    def heuristic(vertex):
+    def heuristic(vertex, goal):
         return 0
 
-    # Open set: (f_score, g_score, vertex, path)
-    open_set = [(heuristic(start_vertex), 0, start_vertex, [])]
-    heapq.heapify(open_set)
+    # Serializable distances for frames
+    def get_serializable_distances(dist_dict):
+        return {k: "infinity" if v == float('infinity') else v for k, v in dist_dict.items()}
 
-    # Closed set
+    # g_score: cost from start to vertex
+    g_score = {vertex: float('infinity') for vertex in graph.vertices}
+    g_score[start_vertex] = 0
+
+    # f_score: estimated total cost from start to goal through vertex
+    f_score = {vertex: float('infinity') for vertex in graph.vertices}
+    f_score[start_vertex] = heuristic(start_vertex, end_vertex)
+
+    # Open set: (f_score, vertex)
+    open_set = [(f_score[start_vertex], start_vertex)]
+    heapq.heapify(open_set)
+    open_vertices = {start_vertex}
+
+    # Closed set (visited vertices)
     closed_set = set()
 
-    # For visualization
-    g_scores = {vertex: float('infinity') for vertex in graph.vertices}
-    g_scores[start_vertex] = 0
+    # For tracking predecessors to reconstruct path
+    predecessors = {vertex: None for vertex in graph.vertices}
 
     # Initial frame
     frames.append({
@@ -1043,270 +1071,150 @@ def generate_astar_frames(graph, start_vertex, end_vertex):
         'visited': [],
         'current': None,
         'queue': [start_vertex],
-        'distances': {k: 'infinity' if v == float('infinity') else v for k, v in g_scores.items()},
+        'distances': get_serializable_distances(g_score),
         'start': start_vertex,
         'end': end_vertex
     })
 
     while open_set:
-        f_score, g_score, current, path = heapq.heappop(open_set)
-
-        # If we've already visited this vertex, skip
-        if current in closed_set:
-            continue
-
-        frames.append({
-            'info': f'Exploring vertex {current} with f_score={f_score} (g={g_score}, h={f_score - g_score})',
-            'visited': list(closed_set),
-            'current': current,
-            'queue': [item[2] for item in open_set],
-            'distances': {k: 'infinity' if v == float('infinity') else v for k, v in g_scores.items()},
-            'start': start_vertex,
-            'end': end_vertex
-        })
+        _, current = heapq.heappop(open_set)
+        open_vertices.remove(current)
 
         # If we've reached the goal
         if current == end_vertex:
-            final_path = path + [current]
-
-            # Path edges
-            path_edges = []
-            for i in range(len(final_path) - 1):
-                path_edges.append(f'{final_path[i]},{final_path[i + 1]}')
-
             frames.append({
-                'info': f'Found path: {" -> ".join(final_path)} with cost {g_score}',
+                'info': f'Reached goal {end_vertex} with cost {g_score[end_vertex]}',
                 'visited': list(closed_set),
                 'current': current,
-                'queue': [item[2] for item in open_set],
-                'distances': {k: 'infinity' if v == float('infinity') else v for k, v in g_scores.items()},
-                'path': final_path,
-                'pathEdges': path_edges,
+                'queue': list(open_vertices),
+                'distances': get_serializable_distances(g_score),
                 'start': start_vertex,
                 'end': end_vertex
             })
             break
 
-        # Mark as visited
+        # Move from open to closed set
         closed_set.add(current)
 
-        # Updated path
-        new_path = path + [current]
+        frames.append({
+            'info': f'Exploring {current} with f_score={f_score[current]} (g={g_score[current]}, h={f_score[current] - g_score[current]})',
+            'visited': list(closed_set),
+            'current': current,
+            'queue': list(open_vertices),
+            'distances': get_serializable_distances(g_score),
+            'start': start_vertex,
+            'end': end_vertex
+        })
 
-        # Explore neighbors
+        # Process neighbors
         try:
-            # Handle potential errors in get_neighbors_with_weights
-            if hasattr(graph, 'get_neighbors_with_weights'):
-                neighbors_with_weights = graph.get_neighbors_with_weights(current)
-            else:
-                neighbors_with_weights = {}
-                for neighbor in graph.get_neighbors(current):
-                    weight = graph.get_edge_weight(current, neighbor) if hasattr(graph, 'get_edge_weight') else 1
-                    neighbors_with_weights[neighbor] = weight
-
-            for neighbor, weight in neighbors_with_weights.items():
+            for neighbor in graph.get_neighbors(current):
+                # Skip if already in closed set
                 if neighbor in closed_set:
                     continue
 
-                # Add edge being considered
+                # Calculate tentative g_score
+                weight = graph.get_edge_weight(current, neighbor)
+                tentative_g = g_score[current] + weight
+
+                # Record considering this edge
                 frames.append({
                     'info': f'Considering edge from {current} to {neighbor} with weight {weight}',
                     'visited': list(closed_set),
                     'current': current,
-                    'queue': [item[2] for item in open_set],
-                    'distances': {k: 'infinity' if v == float('infinity') else v for k, v in g_scores.items()},
+                    'queue': list(open_vertices),
+                    'distances': get_serializable_distances(g_score),
                     'consideredEdges': [f'{current},{neighbor}'],
                     'start': start_vertex,
                     'end': end_vertex
                 })
 
-                # Calculate new scores
-                tentative_g = g_score + weight
+                # If this path is better than previous ones
+                if tentative_g < g_score[neighbor]:
+                    # Update path info
+                    predecessors[neighbor] = current
+                    g_score[neighbor] = tentative_g
+                    f_score[neighbor] = tentative_g + heuristic(neighbor, end_vertex)
 
-                if tentative_g < g_scores.get(neighbor, float('infinity')):
-                    g_scores[neighbor] = tentative_g
+                    # Add to open set if not already there
+                    if neighbor not in open_vertices:
+                        heapq.heappush(open_set, (f_score[neighbor], neighbor))
+                        open_vertices.add(neighbor)
 
-                    # Calculate f_score (g + heuristic)
-                    f = tentative_g + heuristic(neighbor)
+                        frames.append({
+                            'info': f'Added {neighbor} to open set with f_score={f_score[neighbor]} (g={g_score[neighbor]}, h={heuristic(neighbor, end_vertex)})',
+                            'visited': list(closed_set),
+                            'current': current,
+                            'queue': list(open_vertices),
+                            'distances': get_serializable_distances(g_score),
+                            'start': start_vertex,
+                            'end': end_vertex
+                        })
+                    else:
+                        # Already in open set, update priority
+                        frames.append({
+                            'info': f'Updated {neighbor} with better path, f_score={f_score[neighbor]} (g={g_score[neighbor]}, h={heuristic(neighbor, end_vertex)})',
+                            'visited': list(closed_set),
+                            'current': current,
+                            'queue': list(open_vertices),
+                            'distances': get_serializable_distances(g_score),
+                            'start': start_vertex,
+                            'end': end_vertex
+                        })
 
-                    # Add to open set
-                    heapq.heappush(open_set, (f, tentative_g, neighbor, new_path))
+                        # Note: Need to rebuild heap for new priorities
+                        # This is inefficient but clear for visualization
+                        open_set = [(f_score[v], v) for v in open_vertices]
+                        heapq.heapify(open_set)
 
-                    frames.append({
-                        'info': f'Added {neighbor} to open set with f_score={f} (g={tentative_g}, h={f - tentative_g})',
-                        'visited': list(closed_set),
-                        'current': current,
-                        'queue': [item[2] for item in open_set],
-                        'distances': {k: 'infinity' if v == float('infinity') else v for k, v in g_scores.items()},
-                        'start': start_vertex,
-                        'end': end_vertex
-                    })
         except Exception as e:
-            # If there's an error processing neighbors, add an error frame
             frames.append({
                 'info': f'Error processing neighbors of {current}: {str(e)}',
                 'visited': list(closed_set),
                 'current': current,
-                'queue': [item[2] for item in open_set],
-                'distances': {k: 'infinity' if v == float('infinity') else v for k, v in g_scores.items()},
+                'queue': list(open_vertices),
+                'distances': get_serializable_distances(g_score),
                 'start': start_vertex,
                 'end': end_vertex
             })
 
-    # No path found
-    if len(frames) > 0 and 'path' not in frames[-1]:
+    # Reconstruct path
+    if predecessors[end_vertex] is not None:
+        path = []
+        current = end_vertex
+        while current:
+            path.append(current)
+            current = predecessors[current]
+        path.reverse()
+
+        # Path edges
+        path_edges = []
+        for i in range(len(path) - 1):
+            path_edges.append(f'{path[i]},{path[i + 1]}')
+
+        frames.append({
+            'info': f'Shortest path found: {" -> ".join(path)} with cost {g_score[end_vertex]}',
+            'visited': list(closed_set),
+            'current': None,
+            'queue': [],
+            'distances': get_serializable_distances(g_score),
+            'path': path,
+            'pathEdges': path_edges,
+            'start': start_vertex,
+            'end': end_vertex
+        })
+    else:
         frames.append({
             'info': f'No path found from {start_vertex} to {end_vertex}',
             'visited': list(closed_set),
             'current': None,
             'queue': [],
-            'distances': {k: 'infinity' if v == float('infinity') else v for k, v in g_scores.items()},
+            'distances': get_serializable_distances(g_score),
             'start': start_vertex,
             'end': end_vertex
         })
 
     return frames
-
-
-# Implementations of additional algorithms
-
-def astar_search(graph, start_vertex, end_vertex):
-    """A* search algorithm for finding shortest path"""
-
-    # For this implementation, we'll use a simple heuristic
-    # In a real implementation, you'd want a better heuristic based on coordinates
-    def heuristic(vertex):
-        return 0
-
-    # Priority queue for the open set
-    # Format: (f_score, g_score, vertex, path)
-    open_set = [(heuristic(start_vertex), 0, start_vertex, [])]
-    heapq.heapify(open_set)
-
-    # Set of visited vertices
-    closed_set = set()
-
-    while open_set:
-        # Get the vertex with lowest f_score
-        f_score, g_score, current, path = heapq.heappop(open_set)
-
-        # If we've reached the goal, return the path
-        if current == end_vertex:
-            return path + [current], g_score
-
-        # Skip if we've already visited this vertex
-        if current in closed_set:
-            continue
-
-        # Mark as visited
-        closed_set.add(current)
-
-        # New path up to current
-        new_path = path + [current]
-
-        # Explore neighbors
-        for neighbor, weight in graph.get_neighbors_with_weights(current).items():
-            if neighbor in closed_set:
-                continue
-
-            # Calculate g and f scores
-            new_g_score = g_score + weight
-            new_f_score = new_g_score + heuristic(neighbor)
-
-            # Add to open set
-            heapq.heappush(open_set, (new_f_score, new_g_score, neighbor, new_path))
-
-    # No path found
-    return [], float('infinity')
-
-
-def prim_mst(graph):
-    """Prim's algorithm for Minimum Spanning Tree"""
-    if not graph.vertices:
-        return set()
-
-    # Start with an arbitrary vertex
-    start = next(iter(graph.vertices))
-
-    # Track visited vertices
-    visited = {start}
-
-    # Edges in the MST
-    mst_edges = set()
-
-    # Priority queue for edges: (weight, v1, v2)
-    edges = []
-
-    # Add edges from start vertex
-    for neighbor, weight in graph.get_neighbors_with_weights(start).items():
-        heapq.heappush(edges, (weight, start, neighbor))
-
-    # Build the MST
-    while edges and len(visited) < len(graph.vertices):
-        weight, v1, v2 = heapq.heappop(edges)
-
-        if v2 in visited:
-            continue
-
-        mst_edges.add((v1, v2, weight))
-        visited.add(v2)
-
-        # Add edges from newly added vertex
-        for neighbor, w in graph.get_neighbors_with_weights(v2).items():
-            if neighbor not in visited:
-                heapq.heappush(edges, (w, v2, neighbor))
-
-    return mst_edges
-
-
-def kruskal_mst(graph):
-    """Kruskal's algorithm for Minimum Spanning Tree"""
-    # Union-Find data structure
-    parent = {v: v for v in graph.vertices}
-    rank = {v: 0 for v in graph.vertices}
-
-    # Find operation with path compression
-    def find(v):
-        if parent[v] != v:
-            parent[v] = find(parent[v])
-        return parent[v]
-
-    # Union operation with rank
-    def union(v1, v2):
-        root1 = find(v1)
-        root2 = find(v2)
-
-        if root1 != root2:
-            if rank[root1] > rank[root2]:
-                parent[root2] = root1
-            else:
-                parent[root1] = root2
-                if rank[root1] == rank[root2]:
-                    rank[root2] += 1
-
-    # Get all edges and sort by weight
-    edges = []
-    for u, v in graph.edges:
-        weight = graph.get_edge_weight(u, v)
-        edges.append((weight, u, v))
-
-    # Sort edges by weight
-    edges.sort()
-
-    # MST edges
-    mst_edges = set()
-
-    # Process edges in order of weight
-    for weight, v1, v2 in edges:
-        if find(v1) != find(v2):
-            union(v1, v2)
-            mst_edges.add((v1, v2, weight))
-
-            # Stop when we have |V|-1 edges
-            if len(mst_edges) == len(graph.vertices) - 1:
-                break
-
-    return mst_edges
 
 
 def generate_prim_frames(graph):
@@ -1324,7 +1232,7 @@ def generate_prim_frames(graph):
     visited = {start}
 
     # MST edges
-    mst_edges = set()
+    mst_edges = []
 
     # Priority queue: (weight, v1, v2)
     edges = []
@@ -1339,7 +1247,8 @@ def generate_prim_frames(graph):
 
     # Add edges from start
     try:
-        for neighbor, weight in graph.get_neighbors_with_weights(start).items():
+        for neighbor in graph.get_neighbors(start):
+            weight = graph.get_edge_weight(start, neighbor)
             heapq.heappush(edges, (weight, start, neighbor))
 
             frames.append({
@@ -1383,7 +1292,7 @@ def generate_prim_frames(graph):
             continue
 
         # Add to MST
-        mst_edges.add((v1, v2, weight))
+        mst_edges.append((v1, v2, weight))
         visited.add(v2)
 
         frames.append({
@@ -1396,8 +1305,9 @@ def generate_prim_frames(graph):
 
         # Add edges from v2
         try:
-            for neighbor, w in graph.get_neighbors_with_weights(v2).items():
+            for neighbor in graph.get_neighbors(v2):
                 if neighbor not in visited:
+                    w = graph.get_edge_weight(v2, neighbor)
                     heapq.heappush(edges, (w, v2, neighbor))
 
                     frames.append({
@@ -1438,30 +1348,14 @@ def generate_kruskal_frames(graph):
     if not graph or not hasattr(graph, 'vertices') or not graph.vertices:
         return [{'info': 'Empty graph', 'visited': [], 'current': None, 'pathEdges': []}]
 
-    # Union-Find data structure
-    parent = {v: v for v in graph.vertices}
-    rank = {v: 0 for v in graph.vertices}
-
-    def find(v):
-        if parent[v] != v:
-            parent[v] = find(parent[v])
-        return parent[v]
-
-    def union(v1, v2):
-        root1 = find(v1)
-        root2 = find(v2)
-
-        if root1 != root2:
-            if rank[root1] > rank[root2]:
-                parent[root2] = root1
-            else:
-                parent[root1] = root2
-                if rank[root1] == rank[root2]:
-                    rank[root2] += 1
+    # Initialize DisjointSet
+    from kosmos.graph.base import DisjointSet
+    ds = DisjointSet()
+    for vertex in graph.vertices:
+        ds.make_set(vertex)
 
     # Get all edges and sort by weight
     edges = []
-
     try:
         for u, v in graph.edges:
             weight = graph.get_edge_weight(u, v)
@@ -1495,25 +1389,25 @@ def generate_kruskal_frames(graph):
     })
 
     # MST edges
-    mst_edges = set()
+    mst_edges = []
 
     # Process edges
     for weight, v1, v2 in edges:
         frames.append({
             'info': f'Considering edge ({v1},{v2}) with weight {weight}',
-            'visited': [v for v in graph.vertices if find(v) != v],  # Show merged components
+            'visited': [],
             'current': None,
             'consideredEdges': [f'{v1},{v2}'],
             'pathEdges': [f'{v1},{v2}' for v1, v2, _ in mst_edges]
         })
 
-        if find(v1) != find(v2):
-            union(v1, v2)
-            mst_edges.add((v1, v2, weight))
+        if not ds.connected(v1, v2):
+            ds.union(v1, v2)
+            mst_edges.append((v1, v2, weight))
 
             frames.append({
                 'info': f'Added edge ({v1},{v2}) with weight {weight} to the MST',
-                'visited': [v for v in graph.vertices if find(v) != v],
+                'visited': [],
                 'current': None,
                 'pathEdges': [f'{v1},{v2}' for v1, v2, _ in mst_edges]
             })
@@ -1524,7 +1418,7 @@ def generate_kruskal_frames(graph):
         else:
             frames.append({
                 'info': f'Skipping edge ({v1},{v2}) as it would create a cycle',
-                'visited': [v for v in graph.vertices if find(v) != v],
+                'visited': [],
                 'current': None,
                 'pathEdges': [f'{v1},{v2}' for v1, v2, _ in mst_edges]
             })
@@ -1534,7 +1428,7 @@ def generate_kruskal_frames(graph):
 
     frames.append({
         'info': f'MST complete with total weight {total_weight}',
-        'visited': [v for v in graph.vertices if find(v) != v],
+        'visited': [],
         'current': None,
         'queue': [],
         'pathEdges': [f'{v1},{v2}' for v1, v2, _ in mst_edges]

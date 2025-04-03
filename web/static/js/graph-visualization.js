@@ -107,7 +107,20 @@ class GraphVisualizer {
         if (!this.graph || !this.graph.vertices) return;
 
         const vertices = this.graph.vertices || [];
-        const edges = this.graph.edges || {};
+
+        // Check if edges is an object (dictionary) or an array
+        let edgesList = [];
+        if (Array.isArray(this.graph.edges)) {
+            edgesList = this.graph.edges;
+        } else if (typeof this.graph.edges === 'object') {
+            // Convert dictionary to list format for layout calculation
+            for (const key in this.graph.edges) {
+                if (this.graph.edges.hasOwnProperty(key)) {
+                    const [v1, v2] = key.split(',');
+                    edgesList.push({source: v1, target: v2, weight: this.graph.edges[key]});
+                }
+            }
+        }
 
         // Initialize random positions
         const layout = {};
@@ -154,8 +167,11 @@ class GraphVisualizer {
             }
 
             // Attractive forces along edges
-            for (const [edgeKey, weight] of Object.entries(edges)) {
-                const [v1, v2] = edgeKey.split(',');
+            for (const edge of edgesList) {
+                const v1 = edge.source;
+                const v2 = edge.target;
+
+                if (!layout[v1] || !layout[v2]) continue;
 
                 const dx = layout[v2].x - layout[v1].x;
                 const dy = layout[v2].y - layout[v1].y;
@@ -195,6 +211,7 @@ class GraphVisualizer {
         if (!this.isInitialized || this.frames.length === 0) return;
 
         const frame = this.frames[this.currentFrame];
+        if (!frame) return;
 
         // Clear canvas
         this.clearCanvas();
@@ -243,11 +260,27 @@ class GraphVisualizer {
     drawEdges(pathEdges = [], consideredEdges = []) {
         if (!this.graph || !this.graph.edges) return;
 
-        const edges = this.graph.edges || {};
+        let edges;
+
+        // Handle both array and dictionary edge formats
+        if (Array.isArray(this.graph.edges)) {
+            // If edges is an array (from older formats), convert to dictionary
+            edges = {};
+            for (const edge of this.graph.edges) {
+                const key = `${edge.source},${edge.target}`;
+                edges[key] = edge.weight;
+            }
+        } else {
+            // If edges is already a dictionary
+            edges = this.graph.edges;
+        }
 
         for (const edgeKey in edges) {
             const [v1, v2] = edgeKey.split(',');
             const weight = edges[edgeKey];
+
+            // Skip if layout doesn't have these vertices
+            if (!this.layout[v1] || !this.layout[v2]) continue;
 
             // Determine edge color based on state
             let color = this.colors.edge.default;
@@ -290,6 +323,33 @@ class GraphVisualizer {
                     this.ctx.textAlign = 'center';
                     this.ctx.textBaseline = 'middle';
                     this.ctx.fillText(weight, midX, midY);
+                }
+
+                // Draw arrow if graph is directed
+                if (this.graph.directed) {
+                    const arrowSize = 10;
+                    const angle = Math.atan2(p2.y - p1.y, p2.x - p1.x);
+
+                    // Calculate endpoint with offset for arrow (don't go all the way to node)
+                    const offsetX = this.nodeRadius * Math.cos(angle);
+                    const offsetY = this.nodeRadius * Math.sin(angle);
+                    const endX = p2.x - offsetX;
+                    const endY = p2.y - offsetY;
+
+                    // Draw arrowhead
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(endX, endY);
+                    this.ctx.lineTo(
+                        endX - arrowSize * Math.cos(angle - Math.PI/6),
+                        endY - arrowSize * Math.sin(angle - Math.PI/6)
+                    );
+                    this.ctx.lineTo(
+                        endX - arrowSize * Math.cos(angle + Math.PI/6),
+                        endY - arrowSize * Math.sin(angle + Math.PI/6)
+                    );
+                    this.ctx.closePath();
+                    this.ctx.fillStyle = color;
+                    this.ctx.fill();
                 }
             }
         }
@@ -366,7 +426,7 @@ class GraphVisualizer {
             if (!position) continue;
 
             // Don't display infinity directly
-            const displayDistance = distance === Infinity ? '∞' : distance;
+            const displayDistance = distance === "infinity" ? '∞' : distance;
 
             // Draw distance background
             this.ctx.fillStyle = 'white';

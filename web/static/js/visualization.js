@@ -441,6 +441,7 @@ function renderGenericFrame(ctx, frame, width, height) {
 }
 
 // Create animation control buttons
+// Create animation control buttons
 function createAnimationControls() {
     const controlsContainer = document.createElement('div');
     controlsContainer.className = 'animation-controls';
