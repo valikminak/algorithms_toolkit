@@ -48,9 +48,13 @@ export async function runAlgorithm(categoryId, algorithmId, input, options = {})
     try {
         const requestData = {
             algorithm: algorithmId,
-            input: input,
             ...options
         };
+
+        // Add input to requestData if it's provided
+        if (input !== null && input !== undefined) {
+            requestData.input = input;
+        }
 
         const response = await fetch(`/api/${categoryId}/run`, {
             method: 'POST',
@@ -70,7 +74,6 @@ export async function runAlgorithm(categoryId, algorithmId, input, options = {})
         throw error;
     }
 }
-
 /**
  * Compare multiple algorithms
  * @param {string} categoryId - Category of algorithms to compare

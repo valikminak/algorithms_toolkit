@@ -344,7 +344,7 @@ async function initApp() {
     }
 }
 
-// Run the selected algorithm
+// This update fixes the issue in main.js where the input array wasn't being correctly passed to the API
 async function runCurrentAlgorithm() {
     if (!currentCategory || !currentAlgorithm) return;
 
@@ -368,10 +368,19 @@ async function runCurrentAlgorithm() {
             };
         } else {
             // For non-graph algorithms, use the input array
-            options.input = getInputArray();
+            const inputArray = getInputArray();
+
+            // Fix the API call to correctly separate input from other options
+            visualizationData = await runAlgorithm(currentCategory, currentAlgorithm, inputArray, options);
+            renderVisualization(visualizationData, getAnimationSpeed());
+
+            runButton.disabled = false;
+            runButton.textContent = 'Run';
+            return;
         }
 
-        visualizationData = await runAlgorithm(currentCategory, currentAlgorithm, options);
+        // This is for graph algorithms only
+        visualizationData = await runAlgorithm(currentCategory, currentAlgorithm, null, options);
         renderVisualization(visualizationData, getAnimationSpeed());
     } catch (error) {
         console.error('Failed to run algorithm:', error);

@@ -68,6 +68,9 @@ function createAutoUpdateToggle() {
 /**
  * Handle input size slider change
  */
+/**
+ * Handle input size slider change
+ */
 function handleInputSizeChange() {
     const size = parseInt(inputSizeSlider.value);
     inputSizeValue.textContent = size;
@@ -76,11 +79,32 @@ function handleInputSizeChange() {
     if (!useCustomInput) {
         generateRandomArray(size);
 
+        // Make sure the custom input field reflects the new array
+        customInputField.value = currentInputArray.join(', ');
+
         // Automatically run algorithm if auto-update is enabled
         if (autoUpdateEnabled && window.runCurrentAlgorithm) {
             window.runCurrentAlgorithm();
         }
     }
+}
+
+/**
+ * Generate a random array of integers
+ * @param {number} size - Size of the array to generate
+ */
+function generateRandomArray(size) {
+    currentInputArray = [];
+    for (let i = 0; i < size; i++) {
+        currentInputArray.push(Math.floor(Math.random() * 100) + 1); // Random ints between 1 and 100
+    }
+    useCustomInput = false;
+
+    // Update custom input field with the generated array
+    customInputField.value = currentInputArray.join(', ');
+
+    // Debug output to help verify the array is being generated correctly
+    console.log("Generated array with " + currentInputArray.length + " elements:", currentInputArray);
 }
 
 /**
@@ -133,21 +157,6 @@ function handleCustomInputApply() {
     } catch (error) {
         alert(`Invalid input: ${error.message}`);
     }
-}
-
-/**
- * Generate a random array of integers
- * @param {number} size - Size of the array to generate
- */
-function generateRandomArray(size) {
-    currentInputArray = [];
-    for (let i = 0; i < size; i++) {
-        currentInputArray.push(Math.floor(Math.random() * 100) + 1); // Random ints between 1 and 100
-    }
-    useCustomInput = false;
-
-    // Update custom input field with the generated array
-    customInputField.value = currentInputArray.join(', ');
 }
 
 /**
