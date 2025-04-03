@@ -20,27 +20,6 @@ let visualizationData = null;
 let isAnimationRunning = false;
 let graphUI = null;
 
-// Initialize the application
-async function initApp() {
-    try {
-        // Setup UI controls
-        setupUIControls();
-
-        // Initialize visualization container
-        initVisualization();
-
-        // Load categories
-        const categories = await fetchCategories();
-        renderCategories(categories);
-
-        // Setup event listeners
-        setupEventListeners();
-    } catch (error) {
-        console.error('Failed to initialize app:', error);
-        showError('Failed to load the application. Please try again later.');
-    }
-}
-
 // Render the list of algorithm categories
 function renderCategories(categories) {
     categoryList.innerHTML = '';
@@ -150,43 +129,6 @@ function selectAlgorithm(algorithm) {
     loadAlgorithmPerformance(currentCategory, currentAlgorithm);
     loadAlgorithmTheory(currentCategory, currentAlgorithm);
     loadAlgorithmApplications(currentCategory, currentAlgorithm);
-}
-
-// Run the selected algorithm
-async function runCurrentAlgorithm() {
-    if (!currentCategory || !currentAlgorithm) return;
-
-    runButton.disabled = true;
-    runButton.textContent = 'Running...';
-
-    try {
-        let options = getAlgorithmOptions(currentCategory, currentAlgorithm);
-
-        // Special handling for graph algorithms
-        if (currentCategory === 'graph' && graphUI) {
-            const graphData = graphUI.getGraphData();
-            const algorithmParams = graphUI.getAlgorithmParams();
-
-            options = {
-                ...options,
-                graph: graphData,
-                source: algorithmParams.startVertex,
-                target: algorithmParams.targetVertex
-            };
-        } else {
-            // For non-graph algorithms, use the input array
-            options.input = getInputArray();
-        }
-
-        visualizationData = await runAlgorithm(currentCategory, currentAlgorithm, options);
-        renderVisualization(visualizationData, getAnimationSpeed());
-    } catch (error) {
-        console.error('Failed to run algorithm:', error);
-        showError('Failed to run the algorithm. Please try again.');
-    } finally {
-        runButton.disabled = false;
-        runButton.textContent = 'Run';
-    }
 }
 
 // Load and display the algorithm's code
@@ -374,3 +316,68 @@ function createErrorContainer() {
 
 // Initialize the app when the DOM is loaded
 document.addEventListener('DOMContentLoaded', initApp);
+
+
+// main.js - Updated to expose runCurrentAlgorithm for the auto-update feature
+
+// Initialize the application
+async function initApp() {
+    try {
+        // Setup UI controls
+        setupUIControls();
+
+        // Initialize visualization container
+        initVisualization();
+
+        // Load categories
+        const categories = await fetchCategories();
+        renderCategories(categories);
+
+        // Setup event listeners
+        setupEventListeners();
+
+        // Make runCurrentAlgorithm accessible globally for auto-update
+        window.runCurrentAlgorithm = runCurrentAlgorithm;
+    } catch (error) {
+        console.error('Failed to initialize app:', error);
+        showError('Failed to load the application. Please try again later.');
+    }
+}
+
+// Run the selected algorithm
+async function runCurrentAlgorithm() {
+    if (!currentCategory || !currentAlgorithm) return;
+
+    // Disable the run button while running
+    runButton.disabled = true;
+    runButton.textContent = 'Running...';
+
+    try {
+        let options = getAlgorithmOptions(currentCategory, currentAlgorithm);
+
+        // Special handling for graph algorithms
+        if (currentCategory === 'graph' && graphUI) {
+            const graphData = graphUI.getGraphData();
+            const algorithmParams = graphUI.getAlgorithmParams();
+
+            options = {
+                ...options,
+                graph: graphData,
+                source: algorithmParams.startVertex,
+                target: algorithmParams.targetVertex
+            };
+        } else {
+            // For non-graph algorithms, use the input array
+            options.input = getInputArray();
+        }
+
+        visualizationData = await runAlgorithm(currentCategory, currentAlgorithm, options);
+        renderVisualization(visualizationData, getAnimationSpeed());
+    } catch (error) {
+        console.error('Failed to run algorithm:', error);
+        showError('Failed to run the algorithm. Please try again.');
+    } finally {
+        runButton.disabled = false;
+        runButton.textContent = 'Run';
+    }
+}

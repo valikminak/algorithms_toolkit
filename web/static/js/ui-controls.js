@@ -1,6 +1,3 @@
-// ui-controls.js - Handles UI input controls and settings
-
-// DOM elements
 const inputSizeSlider = document.getElementById('input-size');
 const inputSizeValue = document.getElementById('input-size-value');
 const animationSpeedSlider = document.getElementById('animation-speed');
@@ -11,6 +8,7 @@ const applyCustomInputBtn = document.getElementById('apply-custom-input');
 // State
 let currentInputArray = [];
 let useCustomInput = false;
+let autoUpdateEnabled = true; // Default to auto-update
 
 /**
  * Initialize UI controls and set up event listeners
@@ -18,6 +16,9 @@ let useCustomInput = false;
 export function setupUIControls() {
     // Initialize input array with random data
     generateRandomArray(parseInt(inputSizeSlider.value));
+
+    // Create auto-update toggle
+    createAutoUpdateToggle();
 
     // Set up event listeners
     inputSizeSlider.addEventListener('input', handleInputSizeChange);
@@ -35,6 +36,36 @@ export function setupUIControls() {
 }
 
 /**
+ * Add auto-update toggle to the control panel
+ */
+function createAutoUpdateToggle() {
+    const controlGroup = document.createElement('div');
+    controlGroup.className = 'control-group';
+
+    const label = document.createElement('label');
+    label.htmlFor = 'auto-update';
+
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.id = 'auto-update';
+    checkbox.checked = autoUpdateEnabled;
+    checkbox.addEventListener('change', (e) => {
+        autoUpdateEnabled = e.target.checked;
+    });
+
+    label.appendChild(checkbox);
+    label.appendChild(document.createTextNode(' Auto-update visualization'));
+
+    controlGroup.appendChild(label);
+
+    // Add to control panel (right after animation speed)
+    const inputControls = document.querySelector('.input-controls');
+    if (inputControls) {
+        inputControls.appendChild(controlGroup);
+    }
+}
+
+/**
  * Handle input size slider change
  */
 function handleInputSizeChange() {
@@ -44,6 +75,11 @@ function handleInputSizeChange() {
     // Only regenerate array if not using custom input
     if (!useCustomInput) {
         generateRandomArray(size);
+
+        // Automatically run algorithm if auto-update is enabled
+        if (autoUpdateEnabled && window.runCurrentAlgorithm) {
+            window.runCurrentAlgorithm();
+        }
     }
 }
 
@@ -88,6 +124,11 @@ function handleCustomInputApply() {
         if (parsedInput.length <= parseInt(inputSizeSlider.max)) {
             inputSizeSlider.value = parsedInput.length;
             inputSizeValue.textContent = parsedInput.length;
+        }
+
+        // Automatically run algorithm if auto-update is enabled
+        if (autoUpdateEnabled && window.runCurrentAlgorithm) {
+            window.runCurrentAlgorithm();
         }
     } catch (error) {
         alert(`Invalid input: ${error.message}`);
