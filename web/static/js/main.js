@@ -1,8 +1,6 @@
 // main.js - Entry point for the JavaScript application
-import { initVisualization, renderVisualization, clearVisualization } from './visualization.js';
-import { setupUIControls, getInputArray, getAnimationSpeed, getAlgorithmOptions } from './ui-controls.js';
-import { fetchCategories, fetchAlgorithms, runAlgorithm, compareAlgorithms, fetchAlgorithmCode } from './algorithms.js';
-import GraphUI from './graph-ui.js';
+import { fetchCategories, fetchAlgorithms, runAlgorithm, compareAlgorithms, fetchAlgorithmCode } from './common/algorithms.js';
+import { setupUIControls, getInputArray, getAnimationSpeed, getAlgorithmOptions } from './common/ui-controls.js';
 
 // DOM elements
 const categoryList = document.getElementById('category-list');
@@ -12,13 +10,34 @@ const runButton = document.getElementById('run-button');
 const tabButtons = document.querySelectorAll('.tab-button');
 const tabPanes = document.querySelectorAll('.tab-pane');
 const applyCustomInputBtn = document.getElementById('apply-custom-input');
+const visualizationContainer = document.getElementById('visualization-container');
 
 // State
 let currentCategory = null;
 let currentAlgorithm = null;
 let visualizationData = null;
-let isAnimationRunning = false;
-let graphUI = null;
+let currentVisualizer = null;
+
+// Initialize the app when the DOM is loaded
+document.addEventListener('DOMContentLoaded', initApp);
+
+// Initialize the application
+async function initApp() {
+    try {
+        // Setup UI controls
+        setupUIControls();
+
+        // Load categories
+        const categories = await fetchCategories();
+        renderCategories(categories);
+
+        // Setup event listeners
+        setupEventListeners();
+    } catch (error) {
+        console.error('Failed to initialize app:', error);
+        showError('Failed to load the application. Please try again later.');
+    }
+}
 
 // Render the list of algorithm categories
 function renderCategories(categories) {
@@ -52,43 +71,43 @@ async function selectCategory(category) {
         renderAlgorithms(algorithms);
 
         // Special handling for graph category
+        const graphContainer = document.getElementById('graph-editor-container');
         if (category.id === 'graph') {
-            initGraphUI();
+            initGraphVisualizer();
+            if (graphContainer) {
+                graphContainer.style.display = 'block';
+            }
         } else {
-            // Clean up graph UI if it exists
-            if (graphUI) {
-                const graphContainer = document.getElementById('graph-editor-container');
-                if (graphContainer) {
-                    graphContainer.innerHTML = '';
-                    graphContainer.style.display = 'none';
-                }
+            // Hide graph UI if not on graph category
+            if (graphContainer) {
+                graphContainer.style.display = 'none';
             }
         }
+
+        // Clear current visualization
+        clearVisualization();
     } catch (error) {
         console.error(`Failed to load algorithms for ${category.id}:`, error);
         showError(`Failed to load algorithms for ${category.name}.`);
     }
 }
 
-// Initialize the graph editor UI
-function initGraphUI() {
-    // Create or show graph editor container
-    let graphContainer = document.getElementById('graph-editor-container');
-
-    if (!graphContainer) {
-        graphContainer = document.createElement('div');
-        graphContainer.id = 'graph-editor-container';
-        graphContainer.className = 'graph-editor-container';
-
-        // Insert after the controls panel
-        const controlsPanel = document.querySelector('.controls-panel');
-        controlsPanel.parentNode.insertBefore(graphContainer, controlsPanel.nextSibling);
+// Initialize the graph visualizer
+function initGraphVisualizer() {
+    try {
+        // Check if graph visualization modules are available
+        if (window.GraphUI && window.GraphVisualizer) {
+            // Create graph UI if it doesn't exist
+            const graphContainer = document.getElementById('graph-editor-container');
+            if (graphContainer && !graphContainer.querySelector('.graph-editor')) {
+                window.graphUI = new GraphUI(graphContainer);
+            }
+        } else {
+            console.warn('Graph visualization modules not loaded');
+        }
+    } catch (error) {
+        console.error('Failed to initialize graph visualizer:', error);
     }
-
-    graphContainer.style.display = 'block';
-
-    // Initialize the graph UI
-    graphUI = new GraphUI(graphContainer);
 }
 
 // Render the dropdown of algorithms
@@ -112,23 +131,19 @@ function renderAlgorithms(algorithms) {
     });
 
     // Select the first algorithm by default
-    selectAlgorithm(algorithms[0]);
+    currentAlgorithm = algorithms[0].id;
+    loadAlgorithmDetails(currentCategory, algorithms[0].id);
 }
 
-// Handle algorithm selection
-function selectAlgorithm(algorithm) {
-    currentAlgorithm = algorithm.id;
+// Load details for the selected algorithm
+function loadAlgorithmDetails(category, algorithmId) {
+    // Load code implementation
+    loadAlgorithmCode(category, algorithmId);
 
-    // Clear any existing visualization
-    clearVisualization();
-
-    // Update the code tab with this algorithm's implementation
-    loadAlgorithmCode(currentCategory, currentAlgorithm);
-
-    // Update other tabs as needed
-    loadAlgorithmPerformance(currentCategory, currentAlgorithm);
-    loadAlgorithmTheory(currentCategory, currentAlgorithm);
-    loadAlgorithmApplications(currentCategory, currentAlgorithm);
+    // Load other tabs as needed
+    loadAlgorithmPerformance(category, algorithmId);
+    loadAlgorithmTheory(category, algorithmId);
+    loadAlgorithmApplications(category, algorithmId);
 }
 
 // Load and display the algorithm's code
@@ -229,15 +244,8 @@ function setupEventListeners() {
     // Algorithm select dropdown
     algorithmSelect.addEventListener('change', () => {
         const selectedId = algorithmSelect.value;
-        const algorithms = Array.from(algorithmSelect.options).map(option => ({
-            id: option.value,
-            name: option.textContent.split(' - ')[0]
-        }));
-
-        const selected = algorithms.find(algo => algo.id === selectedId);
-        if (selected) {
-            selectAlgorithm(selected);
-        }
+        currentAlgorithm = selectedId;
+        loadAlgorithmDetails(currentCategory, selectedId);
     });
 
     // Tab switching
@@ -253,12 +261,6 @@ function setupEventListeners() {
             tabPanes.forEach(pane => pane.classList.remove('active'));
             document.getElementById(`${tabId}-tab`).classList.add('active');
         });
-    });
-
-    // Custom input button
-    applyCustomInputBtn.addEventListener('click', () => {
-        const inputField = document.getElementById('custom-input-field');
-        // Implementation handled by ui-controls.js
     });
 
     // Keyboard shortcuts
@@ -277,6 +279,181 @@ function setupEventListeners() {
                 break;
         }
     });
+}
+
+// Run the current algorithm
+async function runCurrentAlgorithm() {
+    if (!currentCategory || !currentAlgorithm) return;
+
+    // Disable the run button while running
+    runButton.disabled = true;
+    runButton.textContent = 'Running...';
+
+    try {
+        let options = getAlgorithmOptions(currentCategory, currentAlgorithm);
+
+        // Special handling for graph algorithms
+        if (currentCategory === 'graph' && window.graphUI) {
+            const graphData = window.graphUI.getGraphData();
+            const algorithmParams = window.graphUI.getAlgorithmParams();
+
+            options = {
+                ...options,
+                graph: graphData,
+                source: algorithmParams.startVertex,
+                target: algorithmParams.targetVertex
+            };
+        } else {
+            // For non-graph algorithms, use the input array
+            const inputArray = getInputArray();
+            options.input = inputArray;
+        }
+
+        // Run the algorithm
+        visualizationData = await runAlgorithm(currentCategory, currentAlgorithm, null, options);
+
+        // Visualize the result
+        visualizeResult(visualizationData);
+    } catch (error) {
+        console.error('Failed to run algorithm:', error);
+        showError('Failed to run the algorithm. Please try again.');
+    } finally {
+        runButton.disabled = false;
+        runButton.textContent = 'Run';
+    }
+}
+
+// Visualize algorithm result using the appropriate visualizer
+function visualizeResult(data) {
+    if (!data || !data.visualization) {
+        showError('No visualization data available');
+        return;
+    }
+
+    // Clear previous visualization
+    clearVisualization();
+
+    // Determine which visualizer to use based on category
+    const category = data.category || currentCategory;
+
+    try {
+        switch (category) {
+            case 'sorting':
+                if (window.SortingVisualizer) {
+                    const frames = window.SortingVisualizer.prepareVisualizationData(data);
+
+                    // Initialize visualizer if needed
+                    if (!currentVisualizer || !(currentVisualizer instanceof window.SortingVisualizer)) {
+                        currentVisualizer = new window.SortingVisualizer('visualization-container', {
+                            animationSpeed: getAnimationSpeed()
+                        });
+                    } else {
+                        currentVisualizer.setAnimationSpeed(getAnimationSpeed());
+                    }
+
+                    // Set data and start animation
+                    currentVisualizer.setData(frames);
+                    currentVisualizer.play();
+                } else {
+                    fallbackVisualization(data);
+                }
+                break;
+
+            case 'searching':
+                if (window.SearchingVisualizer) {
+                    const frames = window.SearchingVisualizer.prepareVisualizationData(data);
+
+                    // Initialize visualizer if needed
+                    if (!currentVisualizer || !(currentVisualizer instanceof window.SearchingVisualizer)) {
+                        currentVisualizer = new window.SearchingVisualizer('visualization-container', {
+                            animationSpeed: getAnimationSpeed()
+                        });
+                    } else {
+                        currentVisualizer.setAnimationSpeed(getAnimationSpeed());
+                    }
+
+                    // Set data and start animation
+                    currentVisualizer.setData(frames);
+                    currentVisualizer.play();
+                } else {
+                    fallbackVisualization(data);
+                }
+                break;
+
+            case 'graph':
+                if (window.GraphVisualizer) {
+                    // Use the specialized graph visualizer
+                    if (!currentVisualizer || !(currentVisualizer instanceof window.GraphVisualizer)) {
+                        currentVisualizer = new window.GraphVisualizer('visualization-container');
+                    }
+
+                    currentVisualizer.initialize(data);
+                    currentVisualizer.setSpeed(getAnimationSpeed());
+
+                    // Attach controls
+                    const controls = {
+                        playPause: document.querySelector('.play-pause'),
+                        next: document.querySelector('.step-forward'),
+                        prev: document.querySelector('.step-backward'),
+                        restart: document.querySelector('.restart'),
+                        progressBar: document.querySelector('.progress-bar'),
+                        progressIndicator: document.querySelector('.progress-bar-fill')
+                    };
+
+                    currentVisualizer.attachControls(controls);
+                    currentVisualizer.startAnimation(getAnimationSpeed());
+                } else {
+                    fallbackVisualization(data);
+                }
+                break;
+
+            default:
+                // Use base visualizer for other types
+                if (window.VisualizerBase) {
+                    if (!currentVisualizer || !(currentVisualizer instanceof window.VisualizerBase)) {
+                        currentVisualizer = new window.VisualizerBase('visualization-container', {
+                            animationSpeed: getAnimationSpeed()
+                        });
+                    }
+
+                    currentVisualizer.setData(data.visualization);
+                    currentVisualizer.play();
+                } else {
+                    fallbackVisualization(data);
+                }
+        }
+    } catch (error) {
+        console.error('Visualization error:', error);
+        showError('Failed to visualize the algorithm result');
+        fallbackVisualization(data);
+    }
+}
+
+// Fallback visualization when specialized visualizers are not available
+function fallbackVisualization(data) {
+    if (!data || !data.visualization) {
+        visualizationContainer.innerHTML = '<div class="placeholder-message">No visualization data available</div>';
+        return;
+    }
+
+    // Simple placeholder visualization
+    visualizationContainer.innerHTML = `
+        <div class="placeholder-message">
+            <p>Visualization available but specialized visualizer not loaded.</p>
+            <p>Algorithm: ${data.algorithm}</p>
+            <p>Category: ${data.category}</p>
+            <p>Execution time: ${data.execution_time ? data.execution_time.toFixed(6) + 's' : 'Unknown'}</p>
+        </div>
+    `;
+}
+
+// Clear the current visualization
+function clearVisualization() {
+    if (currentVisualizer) {
+        currentVisualizer.reset();
+    } else {
+        visualizationContainer.innerHTML = '';
+    }
 }
 
 // Show error message
@@ -314,79 +491,5 @@ function createErrorContainer() {
     return container;
 }
 
-// Initialize the app when the DOM is loaded
-document.addEventListener('DOMContentLoaded', initApp);
-
-
-// main.js - Updated to expose runCurrentAlgorithm for the auto-update feature
-
-// Initialize the application
-async function initApp() {
-    try {
-        // Setup UI controls
-        setupUIControls();
-
-        // Initialize visualization container
-        initVisualization();
-
-        // Load categories
-        const categories = await fetchCategories();
-        renderCategories(categories);
-
-        // Setup event listeners
-        setupEventListeners();
-
-        // Make runCurrentAlgorithm accessible globally for auto-update
-        window.runCurrentAlgorithm = runCurrentAlgorithm;
-    } catch (error) {
-        console.error('Failed to initialize app:', error);
-        showError('Failed to load the application. Please try again later.');
-    }
-}
-
-// This update fixes the issue in main.js where the input array wasn't being correctly passed to the API
-async function runCurrentAlgorithm() {
-    if (!currentCategory || !currentAlgorithm) return;
-
-    // Disable the run button while running
-    runButton.disabled = true;
-    runButton.textContent = 'Running...';
-
-    try {
-        let options = getAlgorithmOptions(currentCategory, currentAlgorithm);
-
-        // Special handling for graph algorithms
-        if (currentCategory === 'graph' && graphUI) {
-            const graphData = graphUI.getGraphData();
-            const algorithmParams = graphUI.getAlgorithmParams();
-
-            options = {
-                ...options,
-                graph: graphData,
-                source: algorithmParams.startVertex,
-                target: algorithmParams.targetVertex
-            };
-        } else {
-            // For non-graph algorithms, use the input array
-            const inputArray = getInputArray();
-
-            // Fix the API call to correctly separate input from other options
-            visualizationData = await runAlgorithm(currentCategory, currentAlgorithm, inputArray, options);
-            renderVisualization(visualizationData, getAnimationSpeed());
-
-            runButton.disabled = false;
-            runButton.textContent = 'Run';
-            return;
-        }
-
-        // This is for graph algorithms only
-        visualizationData = await runAlgorithm(currentCategory, currentAlgorithm, null, options);
-        renderVisualization(visualizationData, getAnimationSpeed());
-    } catch (error) {
-        console.error('Failed to run algorithm:', error);
-        showError('Failed to run the algorithm. Please try again.');
-    } finally {
-        runButton.disabled = false;
-        runButton.textContent = 'Run';
-    }
-}
+// Make runCurrentAlgorithm available globally for auto-update feature
+window.runCurrentAlgorithm = runCurrentAlgorithm;

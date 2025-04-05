@@ -6,7 +6,14 @@
     <title>Algorithm Toolkit Dashboard</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/normalize.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/graph-ui.css') }}">
+
+    <!-- Bundled algorithm-specific CSS -->
+    {% if bundled_assets and bundled_assets.css %}
+        {% for css_file in bundled_assets.css %}
+            <link rel="stylesheet" href="{{ url_for('static', filename=css_file) }}">
+        {% endfor %}
+    {% endif %}
+    <!-- BUNDLED_CSS -->
 </head>
 <body>
     <div class="app-container">
@@ -108,6 +115,14 @@
             </main>
         </div>
     </div>
+
+    <!-- Bundled algorithm-specific JS -->
+    {% if bundled_assets and bundled_assets.js %}
+        {% for js_file in bundled_assets.js %}
+            <script src="{{ url_for('static', filename=js_file) }}"></script>
+        {% endfor %}
+    {% endif %}
+    <!-- BUNDLED_JS -->
 
     <script src="{{ url_for('static', filename='js/main.js') }}" type="module"></script>
 </body>
