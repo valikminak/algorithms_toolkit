@@ -11,13 +11,17 @@ app = Flask(__name__)
 from routes.sorting_routes import sorting_bp
 from routes.searching_routes import searching_bp
 from routes.graph_routes import graph_bp
-# Import other route blueprints as needed
+from routes.dynamic_programming_routes import dynamic_programming_routes
+from routes.string_routes import string_algorithms_routes
+from routes.network_flow_routes import network_flow_routes
 
 # Register blueprints
 app.register_blueprint(sorting_bp, url_prefix='/api/sorting')
 app.register_blueprint(searching_bp, url_prefix='/api/searching')
 app.register_blueprint(graph_bp, url_prefix='/api/graph')
-# Register other blueprints
+app.register_blueprint(dynamic_programming_routes)
+app.register_blueprint(string_algorithms_routes)
+app.register_blueprint(network_flow_routes)
 
 @app.route('/')
 def index():
@@ -31,11 +35,9 @@ def get_categories():
         {"id": "sorting", "name": "Sorting Algorithms"},
         {"id": "searching", "name": "Searching Algorithms"},
         {"id": "graph", "name": "Graph Algorithms"},
-        {"id": "tree", "name": "Tree Algorithms"},
-        {"id": "dynamic-programming", "name": "Dynamic Programming"},
-        {"id": "strings", "name": "String Algorithms"},
-        {"id": "geometry", "name": "Geometric Algorithms"},
-        {"id": "genetic", "name": "Genetic Algorithms"}
+        {"id": "dp", "name": "Dynamic Programming"},
+        {"id": "string", "name": "String Algorithms"},
+        {"id": "flow", "name": "Network Flow Algorithms"}
     ]
     return jsonify(categories)
 

@@ -12,7 +12,7 @@ from kosmos.strings.sequence import (
 from kosmos.strings.aho_corasick import (
     AhoCorasick, aho_corasick_search
 )
-from kosmos.strings.suffix import (
+from kosmos.strings.suffix_tree import (
     SuffixTrieNode, SuffixTrie, SuffixTreeNode, SuffixTree, SuffixArray,
     z_algorithm_search
 )

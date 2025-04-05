@@ -130,8 +130,8 @@ def string_example():
 
 def dp_example():
     """Run an example of dynamic programming """
-    from kosmos.dp.classic import knapsack_01_with_solution, rod_cutting_with_solution, coin_change
-    from kosmos.dp.sequence import longest_increasing_subsequence
+    from kosmos.dynamic_programming.classic import knapsack_01_with_solution, rod_cutting_with_solution, coin_change
+    from kosmos.dynamic_programming.sequence import longest_increasing_subsequence
 
     # Knapsack problem
     values = [60, 100, 120]
