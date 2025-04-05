@@ -1,5 +1,5 @@
 // main.js - Entry point for the JavaScript application
-import { initVisualization, renderVisualization, clearVisualization } from './visualization.js';
+import { initVisualization, renderVisualization, clearVisualization } from './visualisation.js';
 import { setupUIControls, getInputArray, getAnimationSpeed, getAlgorithmOptions } from './ui-controls.js';
 import { fetchCategories, fetchAlgorithms, runAlgorithm, compareAlgorithms, fetchAlgorithmCode } from './algorithms.js';
 import GraphUI from './graph-ui.js';

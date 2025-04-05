@@ -19,9 +19,9 @@ from routes.network_flow_routes import network_flow_routes
 app.register_blueprint(sorting_bp, url_prefix='/api/sorting')
 app.register_blueprint(searching_bp, url_prefix='/api/searching')
 app.register_blueprint(graph_bp, url_prefix='/api/graph')
-app.register_blueprint(dynamic_programming_routes)
-app.register_blueprint(string_algorithms_routes)
-app.register_blueprint(network_flow_routes)
+app.register_blueprint(dynamic_programming_routes, url_prefix='/api/dynamic_programming')
+app.register_blueprint(string_algorithms_routes, url_prefix='/api/string/algorithms')
+app.register_blueprint(network_flow_routes, url_prefix='/api/network_flow')
 
 @app.route('/')
 def index():

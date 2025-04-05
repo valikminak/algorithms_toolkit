@@ -1,7 +1,7 @@
 // visualization.js - Handles all visualization rendering using Canvas
 
 // Import graph visualizer
-import GraphVisualizer from './graph-visualization.js';
+import GraphVisualizer from './graph-visualisation.js';
 
 let visualizationContainer;
 let canvas;
