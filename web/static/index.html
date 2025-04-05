@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title><!-- web/static/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Algorithm Learning Tool</title>
+  <link rel="stylesheet" href="/static/css/output.css">
+</head>
+<body class="bg-gray-100 min-h-screen">
+  <div x-data="algorithmApp" x-init="init()" class="container mx-auto px-4 py-8">
+    <!-- Header -->
+    <header class="mb-8">
+      <h1 class="text-3xl font-bold text-blue-600">Algorithm Learning Tool</h1>
+      <p class="text-gray-600">Visualize and learn algorithms step by step</p>
+    </header>
+
+    <!-- Error notification -->
+    <div x-show="error" x-transition class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-6" role="alert">
+      <span class="block sm:inline" x-text="error"></span>
+      <span class="absolute top-0 bottom-0 right-0 px-4 py-3" @click="clearError()">
+        <svg class="fill-current h-6 w-6 text-red-500" role="button" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><title>Close</title><path d="M14.348 14.849a1.2 1.2 0 0 1-1.697 0L10 11.819l-2.651 3.029a1.2 1.2 0 1 1-1.697-1.697l2.758-3.15-2.759-3.152a1.2 1.2 0 1 1 1.697-1.697L10 8.183l2.651-3.031a1.2 1.2 0 1 1 1.697 1.697l-2.758 3.152 2.758 3.15a1.2 1.2 0 0 1 0 1.698z"/></svg>
+      </span>
+    </div>
+
+    <!-- Main content -->
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+      <!-- Sidebar -->
+      <div class="lg:col-span-1">
+        <div class="card">
+          <h2 class="text-lg font-bold mb-4">Domain Selection</h2>
+          <div class="mb-4">
+            <label class="block text-gray-700 mb-2">Algorithm Domain:</label>
+            <select 
+              x-model="selectedDomain" 
+              @change="selectDomain($event.target.value)"
+              class="input">
+              <template x-for="domain in domains" :key="domain">
+                <option :value="domain" x-text="domain"></option>
+              </template>
+            </select>
+          </div>
+          <div class="mb-4">
+            <label class="block text-gray-700 mb-2">Algorithm:</label>
+            <select 
+              x-model="selectedAlgorithm" 
+              @change="selectAlgorithm($event.target.value)"
+              class="input">
+              <template x-for="algorithm in algorithms" :key="algorithm.id">
+                <option :value="algorithm.id" x-text="algorithm.name"></option>
+              </template>
+            </select>
+          </div>
+          <button 
+            @click="runAlgorithm()" 
+            :disabled="isRunning || !selectedAlgorithm" 
+            class="button w-full"
+            :class="{'opacity-50 cursor-not-allowed': isRunning || !selectedAlgorithm}">
+            <span x-text="isRunning ? 'Running...' : 'Run Algorithm'"></span>
+          </button>
+        </div>
+
+        <div class="card">
+          <h2 class="text-lg font-bold mb-4">Input Controls</h2>
+          <div class="mb-4">
+            <label class="block text-gray-700 mb-2">Array Size:</label>
+            <div class="flex items-center gap-2">
+              <input 
+                type="range" 
+                x-model="arraySize" 
+                min="5" 
+                max="50" 
+                class="w-full" 
+                @change="generateRandomArray()">
+              <span x-text="arraySize" class="font-medium"></span>
+            </div>
+          </div>
+          <div class="mb-4">
+            <label class="block text-gray-700 mb-2">Animation Speed:</label>
+            <div class="flex items-center gap-2">
+              <input 
+                type="range" 
+                x-model="animationSpeed" 
+                min="1" 
+                max="10" 
+                class="w-full"
+                @change="updateSpeed()">
+              <span x-text="animationSpeed" class="font-medium"></span>
+            </div>
+          </div>
+          <div class="mb-4">
+            <label class="block text-gray-700 mb-2">Custom Input (comma-separated):</label>
+            <input 
+              type="text" 
+              x-model="customInput" 
+              class="input">
+          </div>
+          <div class="flex gap-2">
+            <button @click="generateRandomArray()" class="button flex-1">Random</button>
+            <button @click="applyCustomInput()" class="button flex-1">Apply Custom</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main panel -->
+      <div class="lg:col-span-3">
+        <!-- Tabs -->
+        <div class="border-b border-gray-200 mb-6">
+          <ul class="flex flex-wrap -mb-px">
+            <li class="mr-2">
+              <button 
+                @click="switchTab('visualization')" 
+                :class="{'border-blue-500 text-blue-600': activeTab === 'visualization'}"
+                class="inline-block p-4 border-b-2 border-transparent rounded-t-lg hover:text-blue-600 hover:border-blue-300">
+                Visualization
+              </button>
+            </li>
+            <li class="mr-2">
+              <button 
+                @click="switchTab('code')" 
+                :class="{'border-blue-500 text-blue-600': activeTab === 'code'}"
+                class="inline-block p-4 border-b-2 border-transparent rounded-t-lg hover:text-blue-600 hover:border-blue-300">
+                Code Implementation
+              </button>
+            </li>
+            <li>
+              <button 
+                @click="switchTab('theory')" 
+                :class="{'border-blue-500 text-blue-600': activeTab === 'theory'}"
+                class="inline-block p-4 border-b-2 border-transparent rounded-t-lg hover:text-blue-600 hover:border-blue-300">
+                Theory
+              </button>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Tab content -->
+        <div x-show="activeTab === 'visualization'" class="card">
+          <h2 class="text-lg font-bold mb-4">Algorithm Visualization</h2>
+          <div id="visualization-container" class="h-96 bg-white rounded border border-gray-300"></div>
+          <div class="mt-4">
+            <p x-text="'Current Array: [' + inputArray.join(', ') + ']'" class="text-gray-700"></p>
+          </div>
+        </div>
+
+        <div x-show="activeTab === 'code'" class="card">
+          <h2 class="text-lg font-bold mb-4">Code Implementation</h2>
+          <pre class="bg-gray-800 text-white p-4 rounded overflow-x-auto text-sm">
+# Bubble Sort Implementation
+def bubble_sort(arr):
+    n = len(arr)
+    for i in range(n):
+        swapped = False
+        for j in range(0, n - i - 1):
+            if arr[j] > arr[j + 1]:
+                arr[j], arr[j + 1] = arr[j + 1], arr[j]
+                swapped = True
+        if not swapped:
+            break
+    return arr
+
+# Quick Sort Implementation
+def quick_sort(arr):
+    if len(arr) <= 1:
+        return arr
+    pivot = arr[len(arr) // 2]
+    left = [x for x in arr if x < pivot]
+    middle = [x for x in arr if x == pivot]
+    right = [x for x in arr if x > pivot]
+    return quick_sort(left) + middle + quick_sort(right)
+          </pre>
+        </div>
+
+        <div x-show="activeTab === 'theory'" class="card">
+          <h2 class="text-lg font-bold mb-4">Algorithm Theory</h2>
+          <div class="prose">
+            <h3>Bubble Sort</h3>
+            <p>
+              Bubble Sort is a simple comparison-based algorithm. It works by repeatedly stepping through the list, comparing adjacent elements, and swapping them if they are in the wrong order. The pass through the list is repeated until no swaps are needed.
+            </p>
+            <h4>Time Complexity</h4>
+            <ul>
+              <li><strong>Best Case:</strong> O(n) when the array is already sorted</li>
+              <li><strong>Average Case:</strong> O(n²)</li>
+              <li><strong>Worst Case:</strong> O(n²)</li>
+            </ul>
+            <h4>Space Complexity</h4>
+            <p>O(1) auxiliary space</p>
+            
+            <h3 class="mt-6">Quick Sort</h3>
+            <p>
+              Quick Sort is a divide-and-conquer algorithm. It works by selecting a 'pivot' element and partitioning the array around the pivot.
+            </p>
+            <h4>Time Complexity</h4>
+            <ul>
+              <li><strong>Best Case:</strong> O(n log n)</li>
+              <li><strong>Average Case:</strong> O(n log n)</li>
+              <li><strong>Worst Case:</strong> O(n²) when the pivot selection is poor</li>
+            </ul>
+            <h4>Space Complexity</h4>
+            <p>O(log n) auxiliary space due to the recursion stack</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.12.0/dist/cdn.min.js" defer></script>
+  <script src="/static/js/visualizer.js"></script>
+  <script src="/static/js/main.js"></script>
+</body>
+</html></title>
+</head>
+<body>
+
+</body>
+</html>

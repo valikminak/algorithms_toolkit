@@ -1,0 +1,17 @@
+{
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "build:css": "tailwindcss -i ./web/static/css/style.css -o ./web/static/css/output.css --minify"
+  },
+  "devDependencies": {
+    "alpinejs": "^3.14.9",
+    "autoprefixer": "^10.4.21",
+    "postcss": "^8.5.3",
+    "tailwindcss": "^4.1.3",
+    "vite": "^6.2.5"
+  },
+  "dependencies": {
+    "@tailwindcss/vite": "^4.1.3"
+  }
+}

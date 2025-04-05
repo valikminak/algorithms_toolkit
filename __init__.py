@@ -3,16 +3,16 @@
 __version__ = "1.0.0"
 
 # Import all submodules to make them available from the package
-from kosmos.sorting import *
+from kosmos.domains.sorting import *
 
 
 # Example functions to showcase usage
 def graph_example():
     """Run an example of graph """
-    from kosmos.graph import Graph
-    from kosmos.graph.traversal import breadth_first_search, depth_first_search
-    from kosmos.graph import dijkstra
-    from kosmos.graph import kruskal_mst
+    from kosmos.faw.graph import Graph
+    from kosmos.faw.graph import breadth_first_search, depth_first_search
+    from kosmos.faw.graph import dijkstra
+    from kosmos.faw.graph import kruskal_mst
 
     # Create a weighted, undirected graph
     g = Graph(directed=False, weighted=True)
@@ -68,10 +68,10 @@ def graph_example():
 
 def tree_example():
     """Run an example of tree """
-    from kosmos.tree.base import BinaryTreeNode
-    from kosmos.tree import binary_tree_inorder_traversal, binary_tree_levelorder_traversal
-    from kosmos.tree import binary_tree_height, binary_tree_is_balanced
-    from kosmos.tree import Trie
+    from kosmos.faw.tree import BinaryTreeNode
+    from kosmos.faw.tree import binary_tree_inorder_traversal, binary_tree_levelorder_traversal
+    from kosmos.faw.tree import binary_tree_height, binary_tree_is_balanced
+    from kosmos.faw.tree import Trie
 
     # Create a binary tree
     root = BinaryTreeNode(1)
@@ -104,9 +104,9 @@ def tree_example():
 
 def string_example():
     """Run an example of string """
-    from kosmos.strings.pattern_matching import kmp_search, rabin_karp_search
-    from kosmos.strings.palindrome import longest_palindromic_substring, manacher_algorithm
-    from kosmos.strings.sequence import longest_common_subsequence, edit_distance
+    from kosmos.faw.strings import kmp_search, rabin_karp_search
+    from kosmos.faw.strings import longest_palindromic_substring, manacher_algorithm
+    from kosmos.faw.strings.sequence import longest_common_subsequence, edit_distance
 
     text = "ABABDABACDABABCABAB"
     pattern = "ABABCABAB"
@@ -130,8 +130,8 @@ def string_example():
 
 def dp_example():
     """Run an example of dynamic programming """
-    from kosmos.dp.classic import knapsack_01_with_solution, rod_cutting_with_solution, coin_change
-    from kosmos.dp.sequence import longest_increasing_subsequence
+    from kosmos.faw.dp import knapsack_01_with_solution, rod_cutting_with_solution, coin_change
+    from kosmos.faw.dp import longest_increasing_subsequence
 
     # Knapsack problem
     values = [60, 100, 120]
@@ -170,7 +170,7 @@ def dp_example():
 
 def sorting_example():
     """Run an example of sorting """
-    from kosmos.sorting import counting_sort, radix_sort
+    from kosmos.domains.sorting import counting_sort, radix_sort
     import random
 
     # Create a random array
@@ -187,7 +187,7 @@ def sorting_example():
 
 def searching_example():
     """Run an example of searching """
-    from kosmos.searching.binary import binary_search, lower_bound, upper_bound
+    from kosmos.faw.searching.binary import binary_search, lower_bound, upper_bound
 
     # Create a sorted array
     arr = sorted([3, 5, 8, 10, 12, 15, 15, 15, 20, 25])
@@ -204,9 +204,9 @@ def searching_example():
 
 def geometry_example():
     """Run an example of geometric """
-    from kosmos.geometry import Point
-    from kosmos.geometry import convex_hull
-    from kosmos.geometry import line_segment_intersection
+    from kosmos.faw.geometry import Point
+    from kosmos.faw.geometry import convex_hull
+    from kosmos.faw.geometry import line_segment_intersection
     import random
 
     # Create random points
@@ -235,8 +235,8 @@ def geometry_example():
 
 def advanced_example():
     """Run an example of advanced """
-    from kosmos.advanced import solve_lp
-    from kosmos.advanced.approximation import greedy_set_cover, greedy_vertex_cover
+    from kosmos.faw.advanced import solve_lp
+    from kosmos.faw.advanced import greedy_set_cover, greedy_vertex_cover
 
     # Linear Programming Example
     c = [3, 2]  # Maximize 3x + 2y
